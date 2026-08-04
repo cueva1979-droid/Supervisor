@@ -147,8 +147,8 @@ app = FastAPI(title=settings.APP_NAME, version=settings.VERSION, lifespan=lifesp
 
 app.add_middleware(CORSAndSecurityMiddleware)
 
-@app.get("/")
-def root():
+@app.get("/health")
+def health():
     return {"status": "ok", "app": settings.APP_NAME, "version": settings.VERSION}
 
 # ==================== Auth Endpoints ====================
@@ -1327,6 +1327,27 @@ def procesos_export_excel_by_admin(admin_name: str = Query(...), user: User = De
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al exportar: {str(e)}")
+
+
+# ==================== Frontend SPA (single-deploy) ====================
+# Serve the built React app when frontend/dist exists. Must be declared
+# after all API routes so that /api routes win and SPA deep links fall
+# back to index.html.
+from fastapi.responses import FileResponse as _FileResponse
+from fastapi.staticfiles import StaticFiles as _StaticFiles
+
+_SPA_DIST = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "frontend", "dist"))
+if os.path.isdir(_SPA_DIST):
+    _spa_assets = os.path.join(_SPA_DIST, "assets")
+    if os.path.isdir(_spa_assets):
+        app.mount("/assets", _StaticFiles(directory=_spa_assets), name="assets")
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    def _spa_fallback(full_path: str):
+        candidate = os.path.join(_SPA_DIST, full_path)
+        if full_path and os.path.isfile(candidate):
+            return _FileResponse(candidate)
+        return _FileResponse(os.path.join(_SPA_DIST, "index.html"))
 
 
 if __name__ == "__main__":

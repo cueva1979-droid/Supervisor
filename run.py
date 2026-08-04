@@ -61,16 +61,8 @@ def main():
     uploads_dir = os.path.join(BASE_DIR, "uploads")
     os.makedirs(uploads_dir, exist_ok=True)
 
-    # Serve static frontend if dist exists
-    dist_path = get_resource_path("frontend/dist")
-    if os.path.exists(dist_path):
-        from fastapi.staticfiles import StaticFiles
-        from backend.main import app
-        app.mount("/", StaticFiles(directory=dist_path, html=True), name="static")
-        uvicorn.run(app, host=host, port=port, reload=False)
-    else:
-        os.chdir(get_resource_path("backend"))
-        uvicorn.run("main:app", host=host, port=port, reload=False)
+    from backend.main import app
+    uvicorn.run(app, host=host, port=port, reload=False)
 
 if __name__ == "__main__":
     main()
