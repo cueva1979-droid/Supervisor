@@ -98,25 +98,27 @@ export default function Process() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div className="card">
         <div className="card-header"><Upload size={18} /> Cargar Documentos</div>
-        <div
-          className={`dropzone${dragOver ? ' active' : ''}`}
-          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-          onDragLeave={() => setDragOver(false)}
-          onDrop={handleDrop}
-          onClick={() => inputRef.current?.click()}
-        >
-          <div className="dropzone-icon"><Upload size={48} /></div>
-          <div className="dropzone-text">Arrastra tus archivos aquí</div>
-          <div className="dropzone-hint">o haz clic para seleccionar (PDF, DOCX)</div>
-          <input
-            ref={inputRef}
-            type="file"
-            multiple
-            accept=".pdf,.docx"
-            style={{ display: 'none' }}
-            onChange={(e) => e.target.files && handleFiles(e.target.files)}
-          />
-        </div>
+        <CanEdit>
+          <div
+            className={`dropzone${dragOver ? ' active' : ''}`}
+            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={handleDrop}
+            onClick={() => inputRef.current?.click()}
+          >
+            <div className="dropzone-icon"><Upload size={48} /></div>
+            <div className="dropzone-text">Arrastra tus archivos aquí</div>
+            <div className="dropzone-hint">o haz clic para seleccionar (PDF, DOCX)</div>
+            <input
+              ref={inputRef}
+              type="file"
+              multiple
+              accept=".pdf,.docx"
+              style={{ display: 'none' }}
+              onChange={(e) => e.target.files && handleFiles(e.target.files)}
+            />
+          </div>
+        </CanEdit>
         {fileStatuses.length > 0 && (
           <div className="file-list">
             {fileStatuses.map((fs, i) => (
