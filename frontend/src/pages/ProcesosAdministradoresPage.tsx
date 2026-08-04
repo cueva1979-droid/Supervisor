@@ -2,8 +2,7 @@ import { useEffect, useState } from 'react';
 import { Users, Search, ChevronDown, ChevronRight, FileText, Edit3, Trash2, Save, X, AlertCircle, FileSpreadsheet } from 'lucide-react';
 import { getProcesosAdministradores, exportProcesosExcelByAdmin } from '../services/api';
 import CanEdit from '../components/CanEdit';
-
-const API = 'http://127.0.0.1:8000';
+import { API_BASE } from '../services/config';
 
 interface Proceso {
   id: string;
@@ -61,7 +60,7 @@ export default function ProcesosAdministradoresPage() {
     setSuccess('');
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch(`${API}/cam/extractions/${id}`, {
+      const res = await fetch(`${API_BASE}/cam/extractions/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(editForm),
@@ -85,7 +84,7 @@ export default function ProcesosAdministradoresPage() {
     setSuccess('');
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch(`${API}/cam/extractions/${id}`, {
+      const res = await fetch(`${API_BASE}/cam/extractions/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });

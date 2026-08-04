@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Settings, Server, Database, HardDrive, Globe, Shield, AlertTriangle, X, RotateCcw, Save, Clock, FolderOpen, Play, Square, Undo2 } from 'lucide-react';
 import { getAccessToken } from '../services/auth';
-
-const API_BASE = 'http://127.0.0.1:8000';
+import { API_BASE } from '../services/config';
 
 function authHeaders(): Record<string, string> {
   const token = getAccessToken();

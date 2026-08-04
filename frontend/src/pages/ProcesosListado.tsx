@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Upload, FileText, Trash2, RefreshCw, CheckCircle, AlertCircle, Loader, Search } from 'lucide-react';
+import { API_BASE } from '../services/config';
 
 interface CAMExtraction {
   id: string;
@@ -11,8 +12,6 @@ interface CAMExtraction {
   fecha_publicacion: string;
   fecha_procesamiento: string;
 }
-
-const API = 'http://127.0.0.1:8000';
 
 export default function ProcesosListado() {
   const [extractions, setExtractions] = useState<CAMExtraction[]>([]);
@@ -29,7 +28,7 @@ export default function ProcesosListado() {
     setError('');
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch(`${API}/cam/extractions`, {
+      const res = await fetch(`${API_BASE}/cam/extractions`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error('Error al cargar extracciones');
@@ -69,7 +68,7 @@ export default function ProcesosListado() {
 
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch(`${API}/cam/extract`, {
+      const res = await fetch(`${API_BASE}/cam/extract`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
@@ -92,7 +91,7 @@ export default function ProcesosListado() {
   const handleDelete = async (id: string) => {
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch(`${API}/cam/extractions/${id}`, {
+      const res = await fetch(`${API_BASE}/cam/extractions/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });

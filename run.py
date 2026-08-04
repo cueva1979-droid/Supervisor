@@ -35,13 +35,17 @@ def open_browser(port, delay=2):
     threading.Thread(target=_open, daemon=True).start()
 
 def main():
-    port = 8000
-    try:
-        test_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        test_sock.bind(("127.0.0.1", port))
-        test_sock.close()
-    except OSError:
-        port = find_free_port()
+    port_env = os.getenv("PORT")
+    if port_env:
+        port = int(port_env)
+    else:
+        port = 8000
+        try:
+            test_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            test_sock.bind(("127.0.0.1", port))
+            test_sock.close()
+        except OSError:
+            port = find_free_port()
 
     print(f"Iniciando SupervisorPDF en http://127.0.0.1:{port}")
     open_browser(port)

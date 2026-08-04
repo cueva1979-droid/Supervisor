@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Users, Search, FileSpreadsheet } from 'lucide-react';
 import { getAdministradores } from '../services/api';
-
-const API_BASE = 'http://127.0.0.1:8000';
+import { API_BASE } from '../services/config';
 
 interface Administrador {
   administrador: string;

@@ -48,6 +48,7 @@ class Settings:
         "http://localhost:5173",
         "http://127.0.0.1:8000",
         "http://localhost:8000",
+        "https://supervisor-utj8.onrender.com",
     ]
 
     RATE_LIMIT_PER_MINUTE: int = 60

@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: supervisor
+    runtime: python
+    plan: free
+    buildCommand: |
+      cd frontend
+      npm install
+      npm run build
+      cd ..
+      pip install -r backend/requirements.txt
+    startCommand: python run.py
+    healthCheckPath: /
+    envVars:
+      - key: JWT_SECRET
+        generateValue: true

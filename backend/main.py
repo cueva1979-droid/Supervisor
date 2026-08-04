@@ -88,6 +88,11 @@ class CORSAndSecurityMiddleware:
             await self.app(scope, receive, send)
             return
 
+        # Strip the /api prefix so the frontend can call same-origin routes
+        path = scope.get("path", "")
+        if path.startswith("/api") and (len(path) == 4 or path[4] == "/"):
+            scope["path"] = path[4:] or "/"
+
         method = scope.get("method", "")
         headers = dict(scope.get("headers", []))
         origin = headers.get(b"origin", b"")
