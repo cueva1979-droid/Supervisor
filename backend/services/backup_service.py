@@ -10,6 +10,9 @@ SCHEDULER_FILE = None
 _scheduler_thread = None
 _scheduler_running = False
 
+def _is_sqlite_db():
+    return not bool(os.getenv("DATABASE_URL"))
+
 def get_backup_dir():
     if getattr(sys, 'frozen', False):
         base = os.path.dirname(sys.executable)
@@ -27,6 +30,8 @@ def get_db_path():
     return os.path.join(base, "data", "supervisor.db")
 
 def create_backup():
+    if not _is_sqlite_db():
+        raise ValueError("El respaldo por archivo solo está disponible con SQLite (uso local). En el servidor, la persistencia está a cargo de la base de datos externa.")
     backup_dir = get_backup_dir()
     db_path = get_db_path()
     if not os.path.exists(db_path):
@@ -44,6 +49,8 @@ def create_backup():
     return metadata
 
 def restore_backup(filename: str):
+    if not _is_sqlite_db():
+        raise ValueError("El respaldo por archivo solo está disponible con SQLite (uso local).")
     backup_dir = get_backup_dir()
     db_path = get_db_path()
     src = os.path.join(backup_dir, filename)
@@ -63,6 +70,15 @@ def restore_backup(filename: str):
 
 def get_backup_info():
     backup_dir = get_backup_dir()
+    if not _is_sqlite_db():
+        return {
+            "backup_dir": backup_dir,
+            "total_backups": 0,
+            "last_backup": None,
+            "files": [],
+            "auto_backup_enabled": False,
+            "message": "Respaldo por archivo deshabilitado en servidor; la persistencia usa base de datos externa.",
+        }
     files = []
     for f in sorted(os.listdir(backup_dir), reverse=True):
         if f.endswith(".db"):

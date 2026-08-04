@@ -12,10 +12,19 @@ def get_data_dir():
     os.makedirs(data_dir, exist_ok=True)
     return data_dir
 
+DB_IS_SQLITE = True
 DB_DIR = get_data_dir()
-DATABASE_URL = f"sqlite:///{os.path.join(DB_DIR, 'supervisor.db')}"
+DATABASE_URL = os.getenv("DATABASE_URL", "")
 
-engine = create_engine(DATABASE_URL, echo=False, connect_args={"check_same_thread": False})
+if DATABASE_URL:
+    DB_IS_SQLITE = False
+    if DATABASE_URL.startswith("postgres://"):
+        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    engine = create_engine(DATABASE_URL, echo=False, pool_pre_ping=True)
+else:
+    DATABASE_URL = f"sqlite:///{os.path.join(DB_DIR, 'supervisor.db')}"
+    engine = create_engine(DATABASE_URL, echo=False, connect_args={"check_same_thread": False})
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
@@ -28,6 +37,8 @@ def get_db():
 
 def init_db():
     Base.metadata.create_all(bind=engine)
+    if not DB_IS_SQLITE:
+        return
     with engine.connect() as conn:
         for col in [
             "ALTER TABLE records ADD COLUMN plazo_entrega VARCHAR(100)",
