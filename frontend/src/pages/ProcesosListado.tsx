@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Upload, FileText, Trash2, RefreshCw, CheckCircle, AlertCircle, Loader, Search } from 'lucide-react';
 import { API_BASE } from '../services/config';
+import CanEdit from '../components/CanEdit';
 
 interface CAMExtraction {
   id: string;
@@ -127,19 +128,21 @@ export default function ProcesosListado() {
         <h3 style={{ margin: '0 0 16px', fontSize: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
           <Upload size={18} /> Cargar documento CAM
         </h3>
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".pdf"
-            onChange={handleFileChange}
-            style={{ flex: 1, minWidth: 200, padding: 8, border: '1px solid var(--border)', borderRadius: 6, background: 'var(--bg-card)' }}
-          />
-          <button className="btn-primary" onClick={handleUpload} disabled={uploading || !selectedFile} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            {uploading ? <Loader size={16} className="spin" /> : <Upload size={16} />}
-            {uploading ? 'Procesando...' : 'Extraer Datos'}
-          </button>
-        </div>
+        <CanEdit>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".pdf"
+              onChange={handleFileChange}
+              style={{ flex: 1, minWidth: 200, padding: 8, border: '1px solid var(--border)', borderRadius: 6, background: 'var(--bg-card)' }}
+            />
+            <button className="btn-primary" onClick={handleUpload} disabled={uploading || !selectedFile} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              {uploading ? <Loader size={16} className="spin" /> : <Upload size={16} />}
+              {uploading ? 'Procesando...' : 'Extraer Datos'}
+            </button>
+          </div>
+        </CanEdit>
       </div>
 
       {lastResult && (

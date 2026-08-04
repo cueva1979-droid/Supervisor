@@ -62,36 +62,38 @@ export default function PACUpload() {
           Cargar Archivo
         </h2>
 
-        <div
-          className="dropzone"
-          onClick={() => document.getElementById('pac-file-input')?.click()}
-          style={{ cursor: 'pointer' }}
-        >
-          <input
-            id="pac-file-input"
-            type="file"
-            accept=".xlsx,.xls,.pdf"
-            onChange={handleFileChange}
-            style={{ display: 'none' }}
-          />
-          {file ? (
-            <>
-              {file.name.endsWith('.pdf') ? (
-                <FileText size={48} style={{ color: 'var(--primary)', marginBottom: 12 }} />
-              ) : (
-                <FileSpreadsheet size={48} style={{ color: 'var(--primary)', marginBottom: 12 }} />
-              )}
-              <p className="dropzone-text">{file.name}</p>
-              <p className="dropzone-hint">{(file.size / 1024).toFixed(2)} KB</p>
-            </>
-          ) : (
-            <>
-              <Upload size={48} className="dropzone-icon" />
-              <p className="dropzone-text">Haga clic para seleccionar un archivo</p>
-              <p className="dropzone-hint">Formatos soportados: .xlsx, .xls, .pdf</p>
-            </>
-          )}
-        </div>
+        <CanEdit>
+          <div
+            className="dropzone"
+            onClick={() => document.getElementById('pac-file-input')?.click()}
+            style={{ cursor: 'pointer' }}
+          >
+            <input
+              id="pac-file-input"
+              type="file"
+              accept=".xlsx,.xls,.pdf"
+              onChange={handleFileChange}
+              style={{ display: 'none' }}
+            />
+            {file ? (
+              <>
+                {file.name.endsWith('.pdf') ? (
+                  <FileText size={48} style={{ color: 'var(--primary)', marginBottom: 12 }} />
+                ) : (
+                  <FileSpreadsheet size={48} style={{ color: 'var(--primary)', marginBottom: 12 }} />
+                )}
+                <p className="dropzone-text">{file.name}</p>
+                <p className="dropzone-hint">{(file.size / 1024).toFixed(2)} KB</p>
+              </>
+            ) : (
+              <>
+                <Upload size={48} className="dropzone-icon" />
+                <p className="dropzone-text">Haga clic para seleccionar un archivo</p>
+                <p className="dropzone-hint">Formatos soportados: .xlsx, .xls, .pdf</p>
+              </>
+            )}
+          </div>
+        </CanEdit>
 
         {file && !uploaded && (
           <div style={{ marginTop: 16, textAlign: 'center' }}>

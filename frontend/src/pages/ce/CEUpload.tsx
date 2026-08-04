@@ -70,23 +70,25 @@ export default function CEUpload({ onExtractionsChange }: Props) {
       </div>
 
       <div className="card" style={{ padding: 24, marginBottom: 16 }}>
-        <div
-          className="dropzone"
-          style={{
-            border: '2px dashed var(--border)',
-            borderRadius: 12,
-            padding: 40,
-            textAlign: 'center',
-            cursor: 'pointer',
-            background: 'var(--bg-card)',
-          }}
-          onClick={() => inputRef.current?.click()}
-        >
-          <Upload size={40} style={{ color: 'var(--primary)', marginBottom: 12 }} />
-          <p style={{ margin: '0 0 4px', fontWeight: 600 }}>Haga clic para seleccionar archivos PDF</p>
-          <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)' }}>Solo archivos PDF de Órdenes de Compra SERCOP</p>
-          <input ref={inputRef} type="file" accept=".pdf" multiple onChange={handleSelect} style={{ display: 'none' }} />
-        </div>
+        <CanEdit>
+          <div
+            className="dropzone"
+            style={{
+              border: '2px dashed var(--border)',
+              borderRadius: 12,
+              padding: 40,
+              textAlign: 'center',
+              cursor: 'pointer',
+              background: 'var(--bg-card)',
+            }}
+            onClick={() => inputRef.current?.click()}
+          >
+            <Upload size={40} style={{ color: 'var(--primary)', marginBottom: 12 }} />
+            <p style={{ margin: '0 0 4px', fontWeight: 600 }}>Haga clic para seleccionar archivos PDF</p>
+            <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)' }}>Solo archivos PDF de Órdenes de Compra SERCOP</p>
+            <input ref={inputRef} type="file" accept=".pdf" multiple onChange={handleSelect} style={{ display: 'none' }} />
+          </div>
+        </CanEdit>
       </div>
 
       {files.length > 0 && (
