@@ -38,7 +38,9 @@ def main():
     port_env = os.getenv("PORT")
     if port_env:
         port = int(port_env)
+        host = "0.0.0.0"
     else:
+        host = "127.0.0.1"
         port = 8000
         try:
             test_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -65,10 +67,10 @@ def main():
         from fastapi.staticfiles import StaticFiles
         from backend.main import app
         app.mount("/", StaticFiles(directory=dist_path, html=True), name="static")
-        uvicorn.run(app, host="127.0.0.1", port=port, reload=False)
+        uvicorn.run(app, host=host, port=port, reload=False)
     else:
         os.chdir(get_resource_path("backend"))
-        uvicorn.run("main:app", host="127.0.0.1", port=port, reload=False)
+        uvicorn.run("main:app", host=host, port=port, reload=False)
 
 if __name__ == "__main__":
     main()
