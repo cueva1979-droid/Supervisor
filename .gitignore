@@ -1,0 +1,37 @@
+# Node
+node_modules/
+frontend/dist/
+frontend/*.tsbuildinfo
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Builds / ejecutables
+build/
+dist/
+dist_exe/
+build_exe.py
+
+# Datos y archivos generados
+data/
+backup/
+exports/
+uploads/
+*.pdf
+*.docx
+*.xlsx
+*.log
+
+# Entorno / IDE
+.idea/
+.vscode/
+.DS_Store
+
+# Credenciales
+.env
+.env.local
