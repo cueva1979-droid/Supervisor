@@ -1,5 +1,7 @@
 import os
 import sys
+import secrets
+import string
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, declarative_base
 
@@ -58,12 +60,20 @@ def create_default_admin(db: Session):
     existing = db.query(User).filter(User.role == "admin").first()
     if existing:
         return
+    password = os.getenv("DEFAULT_ADMIN_PASSWORD") or "".join(
+        secrets.choice(string.ascii_letters + string.digits + "!@#$%") for _ in range(16)
+    )
     admin = User(
         username="admin",
         email="admin@supervisor.local",
-        password_hash=bcrypt.hashpw(b"Admin123!", bcrypt.gensalt(rounds=12)).decode("utf-8"),
+        password_hash=bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt(rounds=12)).decode("utf-8"),
         role="admin",
         is_active=True,
     )
     db.add(admin)
     db.commit()
+    if os.getenv("DEFAULT_ADMIN_PASSWORD"):
+        print("[security] Administrador 'admin' creado con DEFAULT_ADMIN_PASSWORD.")
+    else:
+        print("[security] ATENCIÓN: administrador 'admin' creado con contraseña temporal:", password)
+        print("[security] Cámbiela lo antes posible desde Configuración -> Usuarios.")

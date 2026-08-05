@@ -39,6 +39,7 @@ from schemas import (
     AuditLogResponse, ChangePasswordRequest,
 )
 from services.extraction_service import upload_and_process, delete_record, get_records
+from services.security import sanitize_filename, sanitize_excel
 from services.provider_service import (
     get_providers, get_provider, create_provider,
     update_provider, delete_provider, count_provider_records
@@ -158,11 +159,30 @@ def login(data: LoginRequest, request: Request, db: Session = Depends(get_db)):
     ip = request.client.host if request.client else "unknown"
     check_login_rate_limit(data.username, ip, db)
     user = db.query(User).filter(User.username == data.username).first()
+
+    if user and user.is_locked and user.locked_until and datetime.utcnow() < user.locked_until:
+        mins = int((user.locked_until - datetime.utcnow()).total_seconds() // 60) + 1
+        raise HTTPException(status_code=423, detail=f"Cuenta bloqueada. Intente nuevamente en {mins} min.")
+
     if not user or not verify_password(data.password, user.password_hash):
         record_login_attempt(data.username, ip, False, db)
+        if user and not user.is_locked:
+            since = datetime.utcnow() - timedelta(minutes=settings.LOGIN_LOCKOUT_MINUTES)
+            failed = db.query(LoginAttempt).filter(
+                LoginAttempt.username == user.username,
+                LoginAttempt.success == False,
+                LoginAttempt.timestamp >= since,
+            ).count()
+            if failed >= settings.MAX_LOGIN_ATTEMPTS:
+                user.is_locked = True
+                user.locked_until = datetime.utcnow() + timedelta(minutes=settings.LOGIN_LOCKOUT_MINUTES)
+                db.commit()
         raise HTTPException(status_code=401, detail="Usuario o contraseña incorrectos")
     if not user.is_active:
         raise HTTPException(status_code=403, detail="Cuenta desactivada")
+
+    user.is_locked = False
+    user.locked_until = None
     user.last_login = datetime.utcnow()
     db.commit()
     record_login_attempt(data.username, ip, True, db)
@@ -430,11 +450,11 @@ def export_administradores(user: User = Depends(require_auth), db: Session = Dep
             c.fill = hf; c.font = hfont; c.alignment = Alignment(horizontal="center")
             c.border = Border(left=Side(style="thin"), right=Side(style="thin"), top=Side(style="thin"), bottom=Side(style="thin"))
         for i, r in enumerate(records, 2):
-            ws.cell(row=i, column=1, value=r.administrador)
-            ws.cell(row=i, column=2, value=r.numero_orden or "")
-            ws.cell(row=i, column=3, value=r.proveedor or "")
-            ws.cell(row=i, column=4, value=r.objeto_contratacion or "")
-            ws.cell(row=i, column=5, value=r.fecha or "")
+            ws.cell(row=i, column=1, value=sanitize_excel(r.administrador))
+            ws.cell(row=i, column=2, value=sanitize_excel(r.numero_orden or ""))
+            ws.cell(row=i, column=3, value=sanitize_excel(r.proveedor or ""))
+            ws.cell(row=i, column=4, value=sanitize_excel(r.objeto_contratacion or ""))
+            ws.cell(row=i, column=5, value=sanitize_excel(r.fecha or ""))
             ws.cell(row=i, column=6, value=r.monto_total or 0)
             for col in range(1, 7):
                 ws.cell(row=i, column=col).font = Font(size=10)
@@ -1130,6 +1150,7 @@ async def cam_upload_file(file: UploadFile = File(...), user: User = Depends(req
     if not file:
         raise HTTPException(status_code=400, detail="No se envió archivo")
     filename = file.filename or "unknown"
+    filename = sanitize_filename(filename)
     ext = filename.lower().split(".")[-1] if "." in filename else ""
     if ext != "pdf":
         raise HTTPException(status_code=400, detail="Solo se aceptan archivos PDF")
@@ -1231,6 +1252,7 @@ async def ce_upload_file(file: UploadFile = File(...), user: User = Depends(requ
     if not file:
         raise HTTPException(status_code=400, detail="No se envió archivo")
     filename = file.filename or "unknown"
+    filename = sanitize_filename(filename)
     ext = filename.lower().split(".")[-1] if "." in filename else ""
     if ext != "pdf":
         raise HTTPException(status_code=400, detail="Solo se aceptan archivos PDF")

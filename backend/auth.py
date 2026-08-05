@@ -1,7 +1,9 @@
 import uuid
+import os
+import secrets
+import string
 import hashlib
 import hmac
-import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
@@ -187,10 +189,13 @@ def create_default_admin(db: Session) -> User:
     existing = db.query(User).filter(User.role == "admin").first()
     if existing:
         return existing
+    password = os.getenv("DEFAULT_ADMIN_PASSWORD") or "".join(
+        secrets.choice(string.ascii_letters + string.digits + "!@#$%") for _ in range(16)
+    )
     admin = User(
         username="admin",
         email="admin@supervisor.local",
-        password_hash=hash_password("Admin123!"),
+        password_hash=hash_password(password),
         role="admin",
         is_active=True,
         created_at=datetime.utcnow(),
@@ -198,4 +203,9 @@ def create_default_admin(db: Session) -> User:
     db.add(admin)
     db.commit()
     db.refresh(admin)
+    if os.getenv("DEFAULT_ADMIN_PASSWORD"):
+        print("[security] Administrador 'admin' creado con DEFAULT_ADMIN_PASSWORD.")
+    else:
+        print("[security] ATENCIÓN: administrador 'admin' creado con contraseña temporal:", password)
+        print("[security] Cámbiela lo antes posible desde Configuración -> Usuarios.")
     return admin

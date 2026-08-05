@@ -5,6 +5,7 @@ import pdfplumber
 from datetime import datetime
 from typing import List, Optional, Dict
 from sqlalchemy.orm import Session
+from services.security import sanitize_excel
 
 def _fix_encoding(text: str) -> str:
     if not text:
@@ -455,12 +456,12 @@ def export_excel_by_admin(admin_name: str, db: Session) -> str:
         c.border = Border(left=Side(style="thin"), right=Side(style="thin"), top=Side(style="thin"), bottom=Side(style="thin"))
 
     for i, ext in enumerate(extractions, 2):
-        ws.cell(row=i, column=1, value=ext.administrador_contrato_actual or "")
-        ws.cell(row=i, column=2, value=ext.codigo_proceso or "")
-        ws.cell(row=i, column=3, value=ext.objeto_proceso or "")
-        ws.cell(row=i, column=4, value=ext.estado_proceso or "")
-        ws.cell(row=i, column=5, value=ext.fecha_publicacion or "")
-        ws.cell(row=i, column=6, value=ext.filename or "")
+        ws.cell(row=i, column=1, value=sanitize_excel(ext.administrador_contrato_actual or ""))
+        ws.cell(row=i, column=2, value=sanitize_excel(ext.codigo_proceso or ""))
+        ws.cell(row=i, column=3, value=sanitize_excel(ext.objeto_proceso or ""))
+        ws.cell(row=i, column=4, value=sanitize_excel(ext.estado_proceso or ""))
+        ws.cell(row=i, column=5, value=sanitize_excel(ext.fecha_publicacion or ""))
+        ws.cell(row=i, column=6, value=sanitize_excel(ext.filename or ""))
         for col in range(1, 7):
             ws.cell(row=i, column=col).font = Font(size=10)
             ws.cell(row=i, column=col).border = Border(left=Side(style="thin"), right=Side(style="thin"), top=Side(style="thin"), bottom=Side(style="thin"))

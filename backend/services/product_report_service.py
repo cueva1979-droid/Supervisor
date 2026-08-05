@@ -4,6 +4,7 @@ from typing import Optional, Dict, List
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from models import Item, Record, Provider
+from services.security import sanitize_excel
 
 def _normalize(text: str) -> str:
     text = text.lower().strip()
@@ -225,7 +226,7 @@ def generate_product_excel(
                 it["precio_max"], it["precio_promedio"], it["compras"],
                 it["total_adquirido"], it["proveedores"]]
         for ci, v in enumerate(vals, 1):
-            c = ws1.cell(row=ri, column=ci, value=v)
+            c = ws1.cell(row=ri, column=ci, value=sanitize_excel(v))
             c.border = thin
             c.alignment = Alignment(vertical="center")
     w1 = [18, 45, 14, 14, 14, 12, 16, 40]
@@ -248,7 +249,7 @@ def generate_product_excel(
                 r["precio_unitario"], r["subtotal"], r["proveedor"],
                 r["ruc"], r["codigo_proceso"], r["fecha"], r["numero_orden"]]
         for ci, v in enumerate(vals, 1):
-            c = ws2.cell(row=ri, column=ci, value=v)
+            c = ws2.cell(row=ri, column=ci, value=sanitize_excel(v))
             c.border = thin
             c.alignment = Alignment(vertical="center")
     w2 = [18, 45, 12, 16, 16, 30, 18, 18, 16, 24]
@@ -272,7 +273,7 @@ def generate_product_excel(
     ]
     for ri, (label, val) in enumerate(stats_data, 1):
         c1 = ws3.cell(row=ri, column=1, value=label)
-        c2 = ws3.cell(row=ri, column=2, value=val)
+        c2 = ws3.cell(row=ri, column=2, value=sanitize_excel(val))
         if ri == 1:
             c1.font = hfont; c1.fill = hfill; c1.alignment = halign; c1.border = thin
             c2.font = hfont; c2.fill = hfill; c2.alignment = halign; c2.border = thin
@@ -292,7 +293,7 @@ def generate_product_excel(
         ws3.cell(row=row_offset + 1, column=ci).border = thin
     top = sorted(report["items"], key=lambda x: x["total_adquirido"], reverse=True)[:10]
     for ri, it in enumerate(top, row_offset + 2):
-        ws3.cell(row=ri, column=1, value=it["descripcion"][:60]).border = thin
+        ws3.cell(row=ri, column=1, value=sanitize_excel(it["descripcion"][:60])).border = thin
         ws3.cell(row=ri, column=2, value=it["total_adquirido"]).border = thin
 
     row_offset2 = row_offset + len(top) + 3

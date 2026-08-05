@@ -3,12 +3,33 @@ import sys
 import secrets
 from datetime import timedelta
 
+
+def _load_or_create_secret(env_name: str) -> str:
+    env_val = os.getenv(env_name)
+    if env_val:
+        return env_val
+    secret_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", ".jwt_secret")
+    if os.path.exists(secret_file):
+        with open(secret_file, "r", encoding="utf-8") as f:
+            stored = f.read().strip()
+            if stored:
+                return stored
+    generated = secrets.token_hex(32)
+    try:
+        os.makedirs(os.path.dirname(secret_file), exist_ok=True)
+        with open(secret_file, "w", encoding="utf-8") as f:
+            f.write(generated)
+    except Exception:
+        pass
+    return generated
+
+
 class Settings:
     APP_NAME: str = "SupervisorPDF"
     VERSION: str = "1.0.0"
     DEBUG: bool = False
 
-    JWT_SECRET: str = os.getenv("JWT_SECRET", secrets.token_hex(32))
+    JWT_SECRET: str = _load_or_create_secret("JWT_SECRET")
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRATION: timedelta = timedelta(hours=8)
     JWT_REFRESH_EXPIRATION: timedelta = timedelta(days=7)

@@ -2,6 +2,7 @@ from typing import List, Optional, Dict
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from models import Provider, Record
+from services.security import sanitize_excel
 
 def get_provider_report(db: Session, search: Optional[str] = None,
                         orden_filtro: Optional[str] = None,
@@ -141,7 +142,7 @@ def generate_provider_excel(db: Session, search: Optional[str] = None,
     for ri, row in enumerate(rows, 2):
         vals = [row[0] or "", row[1] or "", row[3] or "", row[4] or "", row[2]]
         for ci, v in enumerate(vals, 1):
-            cell = ws.cell(row=ri, column=ci, value=v)
+            cell = ws.cell(row=ri, column=ci, value=sanitize_excel(v))
             cell.border = thin_border
             cell.alignment = Alignment(vertical="center")
 

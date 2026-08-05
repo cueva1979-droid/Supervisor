@@ -7,6 +7,7 @@ from database import SessionLocal
 from models import Record, Item, Provider, CEExtractionDB
 from parser import DocumentParser
 from schemas import RecordCreate
+from services.security import sanitize_filename
 
 def get_upload_dir():
     if getattr(sys, 'frozen', False):
@@ -22,10 +23,11 @@ UPLOAD_DIR = get_upload_dir()
 ALLOWED_EXTENSIONS = {".pdf", ".docx"}
 
 def save_upload(file) -> str:
-    ext = os.path.splitext(file.filename)[1].lower()
+    filename = sanitize_filename(file.filename or "")
+    ext = os.path.splitext(filename)[1].lower()
     if ext not in ALLOWED_EXTENSIONS:
         raise ValueError(f"Formato no soportado: {ext}. Use PDF o DOCX.")
-    filepath = os.path.join(UPLOAD_DIR, file.filename)
+    filepath = os.path.join(UPLOAD_DIR, filename)
     with open(filepath, "wb") as f:
         shutil.copyfileobj(file.file, f)
     return filepath

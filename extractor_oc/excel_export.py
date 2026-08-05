@@ -5,6 +5,12 @@ from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from openpyxl.utils import get_column_letter
 from extractor_oc.parser import OrdenCompra
 
+try:
+    from services.security import sanitize_excel
+except Exception:
+    def sanitize_excel(v):
+        return ("'" + v) if isinstance(v, str) and v.startswith(("=", "+", "-", "@", "\t", "\r")) else v
+
 
 HEADER_FILL = PatternFill(start_color="1F4E79", end_color="1F4E79", fill_type="solid")
 HEADER_FONT = Font(name="Calibri", bold=True, color="FFFFFF", size=11)
@@ -81,7 +87,7 @@ def exportar_orden(oc: OrdenCompra, filepath: str) -> str:
         ws.cell(row=row, column=1).font = BOLD_FONT
         ws.cell(row=row, column=1).border = THIN_BORDER
         ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=2)
-        ws.cell(row=row, column=3, value=value)
+        ws.cell(row=row, column=3, value=sanitize_excel(value))
         ws.cell(row=row, column=3).font = CELL_FONT
         ws.cell(row=row, column=3).border = THIN_BORDER
         ws.merge_cells(start_row=row, start_column=3, end_row=row, end_column=6)
@@ -92,7 +98,7 @@ def exportar_orden(oc: OrdenCompra, filepath: str) -> str:
         ws.cell(row=row, column=1).font = BOLD_FONT
         ws.cell(row=row, column=1).border = THIN_BORDER
         ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=2)
-        ws.cell(row=row, column=3, value=oc.objeto_contratacion)
+        ws.cell(row=row, column=3, value=sanitize_excel(oc.objeto_contratacion))
         ws.cell(row=row, column=3).font = CELL_FONT
         ws.cell(row=row, column=3).border = THIN_BORDER
         ws.cell(row=row, column=3).alignment = Alignment(wrap_text=True, vertical="center")
@@ -104,9 +110,9 @@ def exportar_orden(oc: OrdenCompra, filepath: str) -> str:
     row += 1
 
     for item in oc.items:
-        ws.cell(row=row, column=1, value=item.cpc)
-        ws.cell(row=row, column=2, value=item.descripcion)
-        ws.cell(row=row, column=3, value=item.unidad)
+        ws.cell(row=row, column=1, value=sanitize_excel(item.cpc))
+        ws.cell(row=row, column=2, value=sanitize_excel(item.descripcion))
+        ws.cell(row=row, column=3, value=sanitize_excel(item.unidad))
         ws.cell(row=row, column=4, value=item.cantidad)
         ws.cell(row=row, column=5, value=item.v_unitario)
 
@@ -114,7 +120,7 @@ def exportar_orden(oc: OrdenCompra, filepath: str) -> str:
         ws.cell(row=row, column=5).number_format = '#,##0.00'
         ws.cell(row=row, column=6, value=item.subtotal)
         ws.cell(row=row, column=6).number_format = '#,##0.00'
-        ws.cell(row=row, column=7, value=item.partida_presupuestaria)
+        ws.cell(row=row, column=7, value=sanitize_excel(item.partida_presupuestaria))
 
         _style_data(ws, row, 7, wrap_cols={2})
         ws.cell(row=row, column=6).font = BOLD_FONT
@@ -155,14 +161,14 @@ def exportar_multiples(ordenes: List[OrdenCompra], filepath: str) -> str:
         if len(oc.items) > 1:
             desc += f" (+{len(oc.items) - 1} más)"
         partidas = list(dict.fromkeys(it.partida_presupuestaria for it in oc.items if it.partida_presupuestaria))
-        ws_resumen.cell(row=i, column=1, value=oc.orden_compra)
-        ws_resumen.cell(row=i, column=2, value=oc.fecha_aceptacion)
-        ws_resumen.cell(row=i, column=3, value=oc.nombre_comercial)
-        ws_resumen.cell(row=i, column=4, value=oc.razon_social)
-        ws_resumen.cell(row=i, column=5, value=oc.ruc)
-        ws_resumen.cell(row=i, column=6, value=desc)
-        ws_resumen.cell(row=i, column=7, value=", ".join(partidas) if partidas else "")
-        ws_resumen.cell(row=i, column=8, value=oc.administrador)
+        ws_resumen.cell(row=i, column=1, value=sanitize_excel(oc.orden_compra))
+        ws_resumen.cell(row=i, column=2, value=sanitize_excel(oc.fecha_aceptacion))
+        ws_resumen.cell(row=i, column=3, value=sanitize_excel(oc.nombre_comercial))
+        ws_resumen.cell(row=i, column=4, value=sanitize_excel(oc.razon_social))
+        ws_resumen.cell(row=i, column=5, value=sanitize_excel(oc.ruc))
+        ws_resumen.cell(row=i, column=6, value=sanitize_excel(desc))
+        ws_resumen.cell(row=i, column=7, value=sanitize_excel(", ".join(partidas) if partidas else ""))
+        ws_resumen.cell(row=i, column=8, value=sanitize_excel(oc.administrador))
         ws_resumen.cell(row=i, column=9, value=oc.v_total)
         ws_resumen.cell(row=i, column=9).number_format = '#,##0.00'
         _style_data(ws_resumen, i, len(headers_resumen), wrap_cols={6})
@@ -177,17 +183,17 @@ def exportar_multiples(ordenes: List[OrdenCompra], filepath: str) -> str:
     row = 2
     for oc in ordenes:
         for item in oc.items:
-            ws_detalle.cell(row=row, column=1, value=oc.orden_compra)
-            ws_detalle.cell(row=row, column=2, value=item.cpc)
-            ws_detalle.cell(row=row, column=3, value=item.descripcion)
-            ws_detalle.cell(row=row, column=4, value=item.unidad)
+            ws_detalle.cell(row=row, column=1, value=sanitize_excel(oc.orden_compra))
+            ws_detalle.cell(row=row, column=2, value=sanitize_excel(item.cpc))
+            ws_detalle.cell(row=row, column=3, value=sanitize_excel(item.descripcion))
+            ws_detalle.cell(row=row, column=4, value=sanitize_excel(item.unidad))
             ws_detalle.cell(row=row, column=5, value=item.cantidad)
             ws_detalle.cell(row=row, column=5).number_format = '#,##0.00'
             ws_detalle.cell(row=row, column=6, value=item.v_unitario)
             ws_detalle.cell(row=row, column=6).number_format = '#,##0.00'
             ws_detalle.cell(row=row, column=7, value=item.subtotal)
             ws_detalle.cell(row=row, column=7).number_format = '#,##0.00'
-            ws_detalle.cell(row=row, column=8, value=item.partida_presupuestaria)
+            ws_detalle.cell(row=row, column=8, value=sanitize_excel(item.partida_presupuestaria))
             _style_data(ws_detalle, row, len(headers_detalle), wrap_cols={3})
             row += 1
     _auto_width(ws_detalle)

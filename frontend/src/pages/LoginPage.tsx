@@ -114,10 +114,6 @@ export default function LoginPage() {
             {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
           </button>
         </form>
-
-        <p style={{ marginTop: 24, fontSize: 12, color: 'var(--text-muted)', textAlign: 'center' }}>
-          Usuario por defecto: admin / Admin123!
-        </p>
       </div>
     </div>
   );

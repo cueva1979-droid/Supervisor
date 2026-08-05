@@ -6,6 +6,7 @@ from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from openpyxl.utils import get_column_letter
 from sqlalchemy.orm import Session
 from models import Record, Item, Provider
+from services.security import sanitize_excel
 
 def get_export_dir():
     if getattr(sys, 'frozen', False):
@@ -77,11 +78,11 @@ def generate_excel(db: Session) -> str:
     style_header(ws2, headers2)
     for row_num, prov in enumerate(providers, 2):
         ws2.cell(row=row_num, column=1, value=prov.id)
-        ws2.cell(row=row_num, column=2, value=prov.nombre)
-        ws2.cell(row=row_num, column=3, value=prov.ruc)
-        ws2.cell(row=row_num, column=4, value=prov.codigo_proceso or "")
-        ws2.cell(row=row_num, column=5, value=prov.telefono or "")
-        ws2.cell(row=row_num, column=6, value=prov.observaciones or "")
+        ws2.cell(row=row_num, column=2, value=sanitize_excel(prov.nombre))
+        ws2.cell(row=row_num, column=3, value=sanitize_excel(prov.ruc))
+        ws2.cell(row=row_num, column=4, value=sanitize_excel(prov.codigo_proceso or ""))
+        ws2.cell(row=row_num, column=5, value=sanitize_excel(prov.telefono or ""))
+        ws2.cell(row=row_num, column=6, value=sanitize_excel(prov.observaciones or ""))
         ws2.cell(row=row_num, column=7, value=prov.fecha_creacion.strftime("%d/%m/%Y %H:%M") if prov.fecha_creacion else "")
         style_data(ws2, row_num, len(headers2))
     auto_width(ws2)
@@ -91,17 +92,17 @@ def generate_excel(db: Session) -> str:
     style_header(ws3, headers3)
     for row_num, rec in enumerate(records, 2):
         ws3.cell(row=row_num, column=1, value=rec.id)
-        ws3.cell(row=row_num, column=2, value=rec.filename)
-        ws3.cell(row=row_num, column=3, value=rec.file_type)
-        ws3.cell(row=row_num, column=4, value=rec.proveedor or "")
-        ws3.cell(row=row_num, column=5, value=rec.ruc or "")
-        ws3.cell(row=row_num, column=6, value=rec.codigo_proceso or "")
-        ws3.cell(row=row_num, column=7, value=rec.numero_orden or "")
-        ws3.cell(row=row_num, column=8, value=rec.fecha or "")
-        ws3.cell(row=row_num, column=9, value=rec.objeto_contratacion or "")
+        ws3.cell(row=row_num, column=2, value=sanitize_excel(rec.filename))
+        ws3.cell(row=row_num, column=3, value=sanitize_excel(rec.file_type))
+        ws3.cell(row=row_num, column=4, value=sanitize_excel(rec.proveedor or ""))
+        ws3.cell(row=row_num, column=5, value=sanitize_excel(rec.ruc or ""))
+        ws3.cell(row=row_num, column=6, value=sanitize_excel(rec.codigo_proceso or ""))
+        ws3.cell(row=row_num, column=7, value=sanitize_excel(rec.numero_orden or ""))
+        ws3.cell(row=row_num, column=8, value=sanitize_excel(rec.fecha or ""))
+        ws3.cell(row=row_num, column=9, value=sanitize_excel(rec.objeto_contratacion or ""))
         ws3.cell(row=row_num, column=10, value=rec.monto_total or 0)
-        ws3.cell(row=row_num, column=11, value=rec.moneda)
-        ws3.cell(row=row_num, column=12, value=rec.estado)
+        ws3.cell(row=row_num, column=11, value=sanitize_excel(rec.moneda))
+        ws3.cell(row=row_num, column=12, value=sanitize_excel(rec.estado))
         ws3.cell(row=row_num, column=13, value=rec.fecha_procesamiento.strftime("%d/%m/%Y %H:%M") if rec.fecha_procesamiento else "")
         style_data(ws3, row_num, len(headers3))
     auto_width(ws3)
@@ -114,10 +115,10 @@ def generate_excel(db: Session) -> str:
         for item in rec.items:
             ws4.cell(row=row_num, column=1, value=item.id)
             ws4.cell(row=row_num, column=2, value=rec.id)
-            ws4.cell(row=row_num, column=3, value=item.codigo_cpc or "")
-            ws4.cell(row=row_num, column=4, value=item.descripcion or "")
+            ws4.cell(row=row_num, column=3, value=sanitize_excel(item.codigo_cpc or ""))
+            ws4.cell(row=row_num, column=4, value=sanitize_excel(item.descripcion or ""))
             ws4.cell(row=row_num, column=5, value=item.cantidad)
-            ws4.cell(row=row_num, column=6, value=item.unidad or "")
+            ws4.cell(row=row_num, column=6, value=sanitize_excel(item.unidad or ""))
             ws4.cell(row=row_num, column=7, value=item.precio_unitario)
             ws4.cell(row=row_num, column=8, value=item.subtotal)
             ws4.cell(row=row_num, column=9, value="Sí" if item.requires_review else "No")
