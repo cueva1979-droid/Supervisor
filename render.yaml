@@ -1,7 +1,3 @@
-databases:
-  - name: supervisor-db
-    plan: free
-
 services:
   - type: web
     name: supervisor
@@ -17,8 +13,6 @@ services:
     healthCheckPath: /
     envVars:
       - key: DATABASE_URL
-        fromDatabase:
-          name: supervisor-db
-          property: connectionString
+        value: postgresql://neondb_owner:npg_us57zMhqmyig@ep-ancient-poetry-ay41qr5p.c-5.us-east-2.aws.neon.tech/neondb?sslmode=require
       - key: JWT_SECRET
         generateValue: true
