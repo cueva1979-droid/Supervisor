@@ -107,7 +107,7 @@ export default function ConfigPage() {
       <div className="card">
         <div className="card-header"><Settings size={18} /> Configuración del Sistema</div>
         <p style={{ color: 'var(--text-secondary)', fontSize: 14, marginBottom: 16 }}>
-          SupervisorPDF funciona completamente offline. Todos los datos se almacenan localmente.
+          SupervisorPRO funciona completamente offline. Todos los datos se almacenan localmente.
         </p>
         <div className="grid-2">
           <div className="card" style={{ padding: 16 }}>
@@ -216,7 +216,7 @@ export default function ConfigPage() {
           <span><Globe size={18} /> Información del Sistema</span>
         </div>
         <dl className="detail-grid" style={{ fontSize: 14 }}>
-          <dt>Aplicación</dt><dd>SupervisorPDF v1.0.0</dd>
+          <dt>Aplicación</dt><dd>SupervisorPRO v1.0.0</dd>
           <dt>Framework Frontend</dt><dd>React 19 + TypeScript + Vite</dd>
           <dt>Framework Backend</dt><dd>FastAPI + SQLAlchemy + SQLite</dd>
           <dt>Parseo PDF</dt><dd>pdfplumber</dd>

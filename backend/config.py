@@ -25,7 +25,7 @@ def _load_or_create_secret(env_name: str) -> str:
 
 
 class Settings:
-    APP_NAME: str = "SupervisorPDF"
+    APP_NAME: str = "SupervisorPRO"
     VERSION: str = "1.0.0"
     DEBUG: bool = False
 

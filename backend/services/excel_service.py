@@ -126,6 +126,6 @@ def generate_excel(db: Session) -> str:
             row_num += 1
     auto_width(ws4)
 
-    filepath = os.path.join(EXPORT_DIR, "SupervisorPDF_Export.xlsx")
+    filepath = os.path.join(EXPORT_DIR, "SupervisorPRO_Export.xlsx")
     wb.save(filepath)
     return filepath

@@ -210,14 +210,14 @@ function AppContent() {
     return <LoginPage />;
   }
 
-  const pageTitle = pageTitles[page] || 'SupervisorPDF';
+  const pageTitle = pageTitles[page] || 'SupervisorPRO';
 
   return (
     <div className="layout">
       <aside className={`sidebar${sidebarOpen ? ' open' : ''}`}>
         <div className="sidebar-header">
           <FileText size={24} className="logo-icon" />
-          <h2>SupervisorPDF</h2>
+          <h2>SupervisorPRO</h2>
         </div>
         <nav className="sidebar-nav">
           {filteredNavItems.map((item) => {

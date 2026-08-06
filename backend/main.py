@@ -428,7 +428,7 @@ def export_all_excel(user: User = Depends(require_auth), db: Session = Depends(g
         return FileResponse(
             filepath,
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            filename="SupervisorPDF_Export.xlsx"
+            filename="SupervisorPRO_Export.xlsx"
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al generar Excel: {str(e)}")

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Punto de entrada para SupervisorPDF - Inicia backend y abre navegador."""
+"""Punto de entrada para SupervisorPRO - Inicia backend y abre navegador."""
 import os
 import sys
 import webbrowser
@@ -49,7 +49,7 @@ def main():
         except OSError:
             port = find_free_port()
 
-    print(f"Iniciando SupervisorPDF en http://127.0.0.1:{port}")
+    print(f"Iniciando SupervisorPRO en http://127.0.0.1:{port}")
     open_browser(port)
 
     # Change to base dir for data persistence

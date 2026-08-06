@@ -1,4 +1,4 @@
-# SupervisorPDF
+# SupervisorPRO
 
 Aplicación full-stack para extracción inteligente de datos desde documentos PDF y Word (órdenes de compra), con gestión de proveedores, historial y exportación a Excel.
 
@@ -92,10 +92,10 @@ python run.py
 ### Build
 ```bash
 cd Supervisor
-pyinstaller SupervisorPDF.spec
+pyinstaller SupervisorPRO.spec
 ```
 
-El ejecutable se genera en `dist/SupervisorPDF.exe`.
+El ejecutable se genera en `dist/SupervisorPRO.exe`.
 
 ### Funcionamiento del ejecutable
 - Inicia el backend automáticamente
