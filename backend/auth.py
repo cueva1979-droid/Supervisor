@@ -9,7 +9,7 @@ from typing import Optional
 
 import bcrypt
 import jwt as pyjwt
-from fastapi import Depends, HTTPException, Request, status
+from fastapi import Depends, HTTPException, Request, Response, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from database import get_db
@@ -17,6 +17,46 @@ from models import User, LoginAttempt, AuditLog
 from config import settings
 
 security = HTTPBearer(auto_error=False)
+
+def set_auth_cookies(response: Response, access_token: str, refresh_token: str) -> None:
+    response.set_cookie(
+        key=settings.COOKIE_ACCESS_NAME,
+        value=access_token,
+        httponly=settings.COOKIE_HTTPONLY,
+        secure=settings.COOKIE_SECURE,
+        samesite=settings.COOKIE_SAMESITE,
+        path=settings.COOKIE_PATH,
+        max_age=int(settings.JWT_EXPIRATION.total_seconds()),
+    )
+    response.set_cookie(
+        key=settings.COOKIE_REFRESH_NAME,
+        value=refresh_token,
+        httponly=settings.COOKIE_HTTPONLY,
+        secure=settings.COOKIE_SECURE,
+        samesite=settings.COOKIE_SAMESITE,
+        path=settings.COOKIE_PATH,
+        max_age=int(settings.JWT_REFRESH_EXPIRATION.total_seconds()),
+    )
+
+def set_csrf_cookie(response: Response, csrf_token: str) -> None:
+    response.set_cookie(
+        key=settings.COOKIE_CSRF_NAME,
+        value=csrf_token,
+        httponly=False,
+        secure=settings.COOKIE_SECURE,
+        samesite=settings.COOKIE_SAMESITE,
+        path=settings.COOKIE_PATH,
+    )
+
+def clear_auth_cookies(response: Response) -> None:
+    for name in (settings.COOKIE_ACCESS_NAME, settings.COOKIE_REFRESH_NAME, settings.COOKIE_CSRF_NAME):
+        response.delete_cookie(name, path=settings.COOKIE_PATH)
+
+def get_token_from_request(request: Request) -> Optional[str]:
+    credentials = request.headers.get("authorization")
+    if credentials and credentials.lower().startswith("bearer "):
+        return credentials[7:].strip()
+    return request.cookies.get(settings.COOKIE_ACCESS_NAME)
 
 def hash_password(password: str) -> str:
     return bcrypt.hashpw(
@@ -70,12 +110,13 @@ def decode_token(token: str) -> Optional[dict]:
         return None
 
 def get_current_user(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+    request: Request,
     db: Session = Depends(get_db),
 ) -> Optional[User]:
-    if credentials is None:
+    token = get_token_from_request(request)
+    if not token:
         return None
-    payload = decode_token(credentials.credentials)
+    payload = decode_token(token)
     if payload is None:
         return None
     user_id = payload.get("sub")

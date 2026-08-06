@@ -1,10 +1,11 @@
-import { getAccessToken } from './auth';
+import { getCsrfToken } from './auth';
 import { API_BASE } from './config';
 
-function getAuthHeaders(): Record<string, string> {
-  const token = getAccessToken();
-  if (token) return { 'Authorization': `Bearer ${token}` };
-  return {};
+function csrfHeaders(method?: string): Record<string, string> {
+  const m = (method || 'GET').toUpperCase();
+  if (m === 'GET' || m === 'HEAD' || m === 'OPTIONS') return {};
+  const csrf = getCsrfToken();
+  return csrf ? { 'X-CSRF-Token': csrf } : {};
 }
 
 export interface CEItem {
@@ -36,7 +37,7 @@ export interface CEExtraction {
 export async function ceUploadFile(file: File): Promise<CEExtraction> {
   const form = new FormData();
   form.append('file', file);
-  const res = await fetch(`${API_BASE}/ce/upload`, { method: 'POST', body: form, headers: getAuthHeaders() });
+  const res = await fetch(`${API_BASE}/ce/upload`, { method: 'POST', credentials: 'include', body: form, headers: csrfHeaders('POST') });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: 'Error al procesar PDF' }));
     throw new Error(err.detail || `Error ${res.status}`);
@@ -45,13 +46,13 @@ export async function ceUploadFile(file: File): Promise<CEExtraction> {
 }
 
 export async function ceListExtractions(): Promise<CEExtraction[]> {
-  const res = await fetch(`${API_BASE}/ce/extractions`, { headers: getAuthHeaders() });
+  const res = await fetch(`${API_BASE}/ce/extractions`, { credentials: 'include' });
   if (!res.ok) throw new Error('Error al listar extracciones');
   return res.json();
 }
 
 export async function ceGetExtraction(id: string): Promise<CEExtraction> {
-  const res = await fetch(`${API_BASE}/ce/extractions/${id}`, { headers: getAuthHeaders() });
+  const res = await fetch(`${API_BASE}/ce/extractions/${id}`, { credentials: 'include' });
   if (!res.ok) throw new Error('Extracción no encontrada');
   return res.json();
 }
@@ -59,7 +60,8 @@ export async function ceGetExtraction(id: string): Promise<CEExtraction> {
 export async function ceUpdateExtraction(id: string, data: Partial<Pick<CEExtraction, 'nombre_comercial' | 'razon_social' | 'administrador' | 'estado'>>): Promise<CEExtraction> {
   const res = await fetch(`${API_BASE}/ce/extractions/${id}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json', ...csrfHeaders('PUT') },
     body: JSON.stringify(data),
   });
   if (!res.ok) {
@@ -70,12 +72,12 @@ export async function ceUpdateExtraction(id: string, data: Partial<Pick<CEExtrac
 }
 
 export async function ceDeleteExtraction(id: string): Promise<void> {
-  const res = await fetch(`${API_BASE}/ce/extractions/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
+  const res = await fetch(`${API_BASE}/ce/extractions/${id}`, { method: 'DELETE', credentials: 'include', headers: csrfHeaders('DELETE') });
   if (!res.ok) throw new Error('Error al eliminar');
 }
 
 export async function ceClearExtractions(): Promise<void> {
-  await fetch(`${API_BASE}/ce/extractions`, { method: 'DELETE', headers: getAuthHeaders() });
+  await fetch(`${API_BASE}/ce/extractions`, { method: 'DELETE', credentials: 'include', headers: csrfHeaders('DELETE') });
 }
 
 export function ceGetExportExcelUrl(ids?: string[]): string {
@@ -85,10 +87,7 @@ export function ceGetExportExcelUrl(ids?: string[]): string {
 
 export async function ceExportExcelByIds(ids?: string[]): Promise<void> {
   const url = ceGetExportExcelUrl(ids);
-  const token = getAccessToken();
-  const res = await fetch(url, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  });
+  const res = await fetch(url, { credentials: 'include' });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: 'Error al exportar' }));
     throw new Error(err.detail || `Error ${res.status}`);
@@ -106,10 +105,7 @@ export async function ceExportExcelByIds(ids?: string[]): Promise<void> {
 
 export async function ceExportExcelByAdmin(adminName: string): Promise<void> {
   const url = `${API_BASE}/ce/export-excel-by-admin/${encodeURIComponent(adminName)}`;
-  const token = getAccessToken();
-  const res = await fetch(url, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  });
+  const res = await fetch(url, { credentials: 'include' });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: 'Error al exportar' }));
     throw new Error(err.detail || `Error ${res.status}`);

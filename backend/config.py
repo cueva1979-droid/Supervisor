@@ -60,7 +60,7 @@ class Settings:
         "config": ["admin"],
     }
 
-    CSRF_ENABLED: bool = False
+    CSRF_ENABLED: bool = True
 
     ALLOWED_ORIGINS: list = [
         "http://127.0.0.1:3000",
@@ -69,8 +69,16 @@ class Settings:
         "http://localhost:5173",
         "http://127.0.0.1:8000",
         "http://localhost:8000",
-        "https://supervisor-utj8.onrender.com",
+        "https://supervisor-app.onrender.com",
     ]
+
+    COOKIE_ACCESS_NAME: str = "sp_access"
+    COOKIE_REFRESH_NAME: str = "sp_refresh"
+    COOKIE_CSRF_NAME: str = "sp_csrf"
+    COOKIE_HTTPONLY: bool = True
+    COOKIE_SECURE: bool = os.getenv("COOKIE_SECURE", "true").lower() in ("1", "true", "yes")
+    COOKIE_SAMESITE: str = "strict"
+    COOKIE_PATH: str = "/"
 
     RATE_LIMIT_PER_MINUTE: int = 60
     RATE_LIMIT_LOGIN_PER_MINUTE: int = 5

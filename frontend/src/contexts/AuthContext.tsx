@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import { login as apiLogin, getMe, getAccessToken, getRefreshToken, setTokens, clearTokens, getUser, setUser, isAuthenticated, type UserInfo } from '../services/auth';
+import { login as apiLogin, getMe, logout as apiLogout, getUser, setUser, clearUser, type UserInfo } from '../services/auth';
 
 interface AuthContextType {
   user: UserInfo | null;
@@ -23,16 +23,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const init = async () => {
-      const token = getAccessToken();
-      if (token) {
-        try {
-          const me = await getMe(token);
-          setUserState(me);
-          setUser(me);
-        } catch {
-          clearTokens();
-          setUserState(null);
-        }
+      try {
+        const me = await getMe();
+        setUserState(me);
+        setUser(me);
+      } catch {
+        clearUser();
+        setUserState(null);
       }
       setLoading(false);
     };
@@ -41,13 +38,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (username: string, password: string) => {
     const res = await apiLogin(username, password);
-    setTokens(res.access_token, res.refresh_token);
     setUser(res.user);
     setUserState(res.user);
   };
 
-  const logout = () => {
-    clearTokens();
+  const logout = async () => {
+    await apiLogout();
+    clearUser();
     setUserState(null);
   };
 

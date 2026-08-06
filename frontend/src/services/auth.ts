@@ -1,5 +1,7 @@
 import { API_BASE } from './config';
 
+export const CSRF_COOKIE_NAME = 'sp_csrf';
+
 export interface UserInfo {
   id: number;
   username: string;
@@ -8,15 +10,22 @@ export interface UserInfo {
 }
 
 export interface LoginResponse {
-  access_token: string;
-  refresh_token: string;
+  access_token?: string;
+  refresh_token?: string;
+  csrf_token?: string;
   token_type: string;
   user: UserInfo;
+}
+
+export function getCsrfToken(): string {
+  const match = document.cookie.split('; ').find((row) => row.startsWith(`${CSRF_COOKIE_NAME}=`));
+  return match ? decodeURIComponent(match.split('=').slice(1).join('=')) : '';
 }
 
 export async function login(username: string, password: string): Promise<LoginResponse> {
   const res = await fetch(`${API_BASE}/auth/login`, {
     method: 'POST',
+    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, password }),
   });
@@ -27,45 +36,31 @@ export async function login(username: string, password: string): Promise<LoginRe
   return res.json();
 }
 
-export async function refreshToken(token: string): Promise<{ access_token: string }> {
+export async function refreshToken(): Promise<void> {
   const res = await fetch(`${API_BASE}/auth/refresh`, {
     method: 'POST',
+    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ refresh_token: token }),
   });
-  if (!res.ok) throw new Error('No se pudo renovar el token');
-  return res.json();
+  if (!res.ok) throw new Error('No se pudo renovar la sesión');
 }
 
-export async function getMe(token: string): Promise<UserInfo> {
-  const res = await fetch(`${API_BASE}/auth/me`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+export async function logout(): Promise<void> {
+  try {
+    await fetch(`${API_BASE}/auth/logout`, { method: 'POST', credentials: 'include' });
+  } catch {
+    // ignorar errores de red al cerrar sesión
+  }
+}
+
+export async function getMe(): Promise<UserInfo> {
+  const res = await fetch(`${API_BASE}/auth/me`, { credentials: 'include' });
   if (!res.ok) throw new Error('Sesión no válida');
   return res.json();
 }
 
-export function getAccessToken(): string | null {
-  return localStorage.getItem('access_token');
-}
-
-export function getRefreshToken(): string | null {
-  return localStorage.getItem('refresh_token');
-}
-
-export function setTokens(access: string, refresh: string) {
-  localStorage.setItem('access_token', access);
-  localStorage.setItem('refresh_token', refresh);
-}
-
-export function clearTokens() {
-  localStorage.removeItem('access_token');
-  localStorage.removeItem('refresh_token');
-  localStorage.removeItem('user');
-}
-
 export function isAuthenticated(): boolean {
-  return !!getAccessToken();
+  return !!getUser();
 }
 
 export function getUser(): UserInfo | null {
@@ -80,4 +75,8 @@ export function getUser(): UserInfo | null {
 
 export function setUser(user: UserInfo) {
   localStorage.setItem('user', JSON.stringify(user));
+}
+
+export function clearUser() {
+  localStorage.removeItem('user');
 }

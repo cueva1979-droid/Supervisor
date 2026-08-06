@@ -1,24 +1,27 @@
 import { API_BASE } from './config';
+import { getCsrfToken } from './auth';
 
-function getAuthHeaders(): Record<string, string> {
-  const token = localStorage.getItem('access_token');
-  const headers: Record<string, string> = {};
-  if (token) headers['Authorization'] = `Bearer ${token}`;
-  return headers;
+function getCsrfHeaders(method: string | undefined): Record<string, string> {
+  const m = (method || 'GET').toUpperCase();
+  if (m === 'GET' || m === 'HEAD' || m === 'OPTIONS') return {};
+  const csrf = getCsrfToken();
+  return csrf ? { 'X-CSRF-Token': csrf } : {};
 }
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  const method = options?.method || 'GET';
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...getAuthHeaders(),
+    ...getCsrfHeaders(method),
     ...(options?.headers as Record<string, string> || {}),
   };
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
+    method,
+    credentials: 'include',
     headers,
   });
   if (res.status === 401) {
-    localStorage.removeItem('access_token');
     localStorage.removeItem('user');
     window.location.href = '/login';
     throw new Error('Sesión expirada');
@@ -33,9 +36,9 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 export async function uploadFiles(files: File[]) {
   const form = new FormData();
   files.forEach((f) => form.append('files', f));
-  const headers = getAuthHeaders();
-  const res = await fetch(`${API_BASE}/upload`, { method: 'POST', body: form, headers });
-  if (res.status === 401) { localStorage.removeItem('access_token'); window.location.href = '/login'; }
+  const headers = getCsrfHeaders('POST');
+  const res = await fetch(`${API_BASE}/upload`, { method: 'POST', credentials: 'include', body: form, headers });
+  if (res.status === 401) { localStorage.removeItem('user'); window.location.href = '/login'; }
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: 'Error al subir archivos' }));
     throw new Error(err.detail || `Error ${res.status}`);
@@ -131,8 +134,7 @@ export async function getProcesosAdministradores(search?: string) {
 
 export async function exportProcesosExcelByAdmin(adminName: string): Promise<void> {
   const url = `${API_BASE}/procesos/export-excel-by-admin?admin_name=${encodeURIComponent(adminName)}`;
-  const headers = getAuthHeaders();
-  const res = await fetch(url, { headers });
+  const res = await fetch(url, { credentials: 'include' });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: 'Error al exportar' }));
     throw new Error(err.detail || `Error ${res.status}`);

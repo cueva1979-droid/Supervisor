@@ -1,11 +1,17 @@
 import { useState, useEffect } from 'react';
 import { Settings, Server, Database, HardDrive, Globe, Shield, AlertTriangle, X, RotateCcw, Save, Clock, FolderOpen, Play, Square, Undo2 } from 'lucide-react';
-import { getAccessToken } from '../services/auth';
+import { getCsrfToken } from '../services/auth';
 import { API_BASE } from '../services/config';
 
-function authHeaders(): Record<string, string> {
-  const token = getAccessToken();
-  return token ? { 'Authorization': `Bearer ${token}` } : {};
+function csrfHeaders(method?: string): Record<string, string> {
+  const m = (method || 'GET').toUpperCase();
+  if (m === 'GET' || m === 'HEAD' || m === 'OPTIONS') return {};
+  const csrf = getCsrfToken();
+  return csrf ? { 'X-CSRF-Token': csrf } : {};
+}
+
+function authHeaders(method?: string): Record<string, string> {
+  return { ...csrfHeaders(method) };
 }
 
 export default function ConfigPage() {
@@ -22,7 +28,7 @@ export default function ConfigPage() {
 
   const loadBackupInfo = async () => {
     try {
-      const res = await fetch(`${API_BASE}/backup/info`, { headers: authHeaders() });
+      const res = await fetch(`${API_BASE}/backup/info`, { credentials: 'include', headers: authHeaders() });
       if (res.ok) setBackupInfo(await res.json());
     } catch {}
   };
@@ -33,7 +39,7 @@ export default function ConfigPage() {
     setBackingUp(true);
     setBackupMsg('');
     try {
-      const res = await fetch(`${API_BASE}/backup`, { method: 'POST', headers: authHeaders() });
+      const res = await fetch(`${API_BASE}/backup`, { method: 'POST', credentials: 'include', headers: authHeaders() });
       if (!res.ok) throw new Error((await res.json()).detail || 'Error');
       const data = await res.json();
       setBackupMsg(`Backup creado: ${data.backup.filename}`);
@@ -48,6 +54,7 @@ export default function ConfigPage() {
     try {
       const res = await fetch(`${API_BASE}/backup/auto-toggle`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({ enabled }),
       });
@@ -63,6 +70,7 @@ export default function ConfigPage() {
     try {
       const res = await fetch(`${API_BASE}/backup/restore`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({ filename: restoreFile }),
       });
@@ -80,7 +88,7 @@ export default function ConfigPage() {
   const handleReset = async () => {
     setResetting(true);
     try {
-      const res = await fetch(`${API_BASE}/reset-db`, { method: 'DELETE' });
+      const res = await fetch(`${API_BASE}/reset-db`, { method: 'DELETE', credentials: 'include', headers: authHeaders('DELETE') });
       if (!res.ok) throw new Error((await res.json()).detail || 'Error');
       setDone(true);
       setTimeout(() => { setShowConfirm(false); setDone(false); }, 2000);

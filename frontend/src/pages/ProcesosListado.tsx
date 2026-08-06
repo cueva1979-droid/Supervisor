@@ -1,7 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
 import { Upload, FileText, Trash2, RefreshCw, CheckCircle, AlertCircle, Loader, Search } from 'lucide-react';
 import { API_BASE } from '../services/config';
+import { getCsrfToken } from '../services/auth';
 import CanEdit from '../components/CanEdit';
+
+function csrfHeaders(method?: string): Record<string, string> {
+  const m = (method || 'GET').toUpperCase();
+  if (m === 'GET' || m === 'HEAD' || m === 'OPTIONS') return {};
+  const csrf = getCsrfToken();
+  return csrf ? { 'X-CSRF-Token': csrf } : {};
+}
 
 interface CAMExtraction {
   id: string;
@@ -28,9 +36,8 @@ export default function ProcesosListado() {
     setLoading(true);
     setError('');
     try {
-      const token = localStorage.getItem('access_token');
       const res = await fetch(`${API_BASE}/cam/extractions`, {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       });
       if (!res.ok) throw new Error('Error al cargar extracciones');
       const data = await res.json();
@@ -68,10 +75,10 @@ export default function ProcesosListado() {
     formData.append('file', selectedFile);
 
     try {
-      const token = localStorage.getItem('access_token');
       const res = await fetch(`${API_BASE}/cam/extract`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
+        headers: csrfHeaders('POST'),
         body: formData,
       });
       const data = await res.json();
@@ -91,10 +98,10 @@ export default function ProcesosListado() {
 
   const handleDelete = async (id: string) => {
     try {
-      const token = localStorage.getItem('access_token');
       const res = await fetch(`${API_BASE}/cam/extractions/${id}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
+        headers: csrfHeaders('DELETE'),
       });
       if (!res.ok) throw new Error('Error al eliminar');
       setSuccess('Extracción eliminada');

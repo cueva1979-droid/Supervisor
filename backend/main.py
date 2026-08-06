@@ -4,6 +4,8 @@ import io
 import uuid
 import json
 import re
+import hmac
+import logging
 import secrets
 from datetime import datetime as dt
 from collections import defaultdict
@@ -12,7 +14,7 @@ from typing import List, Optional
 
 import uvicorn
 from fastapi import FastAPI, UploadFile, File, Depends, HTTPException, Query, Request, Response as FastResponse
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.security import HTTPBearer
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
@@ -57,12 +59,15 @@ from auth import (
     hash_password, verify_password, create_access_token, create_refresh_token,
     decode_token, get_current_user, require_auth, require_role, require_module,
     check_login_rate_limit, record_login_attempt, log_audit, sanitize_input,
-    generate_csrf_token, validate_csrf,
+    set_auth_cookies, clear_auth_cookies, set_csrf_cookie, get_token_from_request,
 )
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("supervisor")
 
 security = HTTPBearer(auto_error=False)
 
-# --- CORS + Security Headers Middleware (pure ASGI) ---
+# --- CORS + Security Headers + CSRF Middleware (pure ASGI) ---
 CORS_ALLOW_ORIGINS = settings.ALLOWED_ORIGINS
 CORS_ALLOW_METHODS = b"GET, POST, PUT, DELETE, OPTIONS, PATCH"
 CORS_ALLOW_HEADERS = b"Authorization, Content-Type, X-CSRF-Token, X-Requested-With, Accept, Origin"
@@ -71,14 +76,30 @@ CORS_EXPOSE_HEADERS = b"Content-Disposition, Content-Type"
 SECURITY_HEADERS = [
     (b"x-content-type-options", b"nosniff"),
     (b"x-frame-options", b"DENY"),
-    (b"x-xss-protection", b"1; mode=block"),
     (b"strict-transport-security", b"max-age=31536000; includeSubDomains"),
     (b"cache-control", b"no-store, no-cache, must-revalidate"),
     (b"pragma", b"no-cache"),
-    (b"content-security-policy", b"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"),
+    (b"content-security-policy", b"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"),
     (b"referrer-policy", b"strict-origin-when-cross-origin"),
     (b"permissions-policy", b"camera=(), microphone=(), geolocation=()"),
 ]
+
+UNSAFE_METHODS = (b"POST", b"PUT", b"PATCH", b"DELETE")
+CSRF_EXEMPT_PATHS = ("/auth/login", "/auth/refresh", "/auth/logout", "/health")
+
+def _origin_allowed(origin: bytes) -> bool:
+    try:
+        return origin.decode("utf-8") in CORS_ALLOW_ORIGINS
+    except Exception:
+        return False
+
+def _parse_cookies(cookie_header: bytes) -> dict:
+    cookies = {}
+    for part in cookie_header.decode("utf-8", errors="ignore").split(";"):
+        if "=" in part:
+            k, _, v = part.strip().partition("=")
+            cookies[k.strip()] = v.strip()
+    return cookies
 
 class CORSAndSecurityMiddleware:
     def __init__(self, app):
@@ -92,17 +113,19 @@ class CORSAndSecurityMiddleware:
         # Strip the /api prefix so the frontend can call same-origin routes
         path = scope.get("path", "")
         if path.startswith("/api") and (len(path) == 4 or path[4] == "/"):
-            scope["path"] = path[4:] or "/"
+            path = path[4:] or "/"
+            scope["path"] = path
 
         method = scope.get("method", "")
+        method_bytes = method.encode("utf-8") if method else b""
         headers = dict(scope.get("headers", []))
         origin = headers.get(b"origin", b"")
+        origin_allowed = _origin_allowed(origin) if origin else False
 
         # Handle OPTIONS preflight
         if method == "OPTIONS":
-            allowed = origin and origin.decode() in CORS_ALLOW_ORIGINS
             resp_headers = []
-            if allowed:
+            if origin_allowed:
                 resp_headers = [
                     (b"access-control-allow-origin", origin),
                     (b"access-control-allow-methods", CORS_ALLOW_METHODS),
@@ -112,15 +135,35 @@ class CORSAndSecurityMiddleware:
                     (b"vary", b"Origin"),
                 ]
             resp_headers.append((b"content-length", b"0"))
+            resp_headers.extend(SECURITY_HEADERS)
             await send({"type": "http.response.start", "status": 200, "headers": resp_headers})
             await send({"type": "http.response.body", "body": b""})
             return
 
+        # CSRF protection for state-changing requests authenticated via cookies.
+        # Requests that carry a Bearer token (header) are exempt because CSRF
+        # only targets cookie-based sessions.
+        if settings.CSRF_ENABLED and method_bytes in UNSAFE_METHODS and path not in CSRF_EXEMPT_PATHS:
+            auth_header = headers.get(b"authorization", b"")
+            uses_bearer = auth_header.lower().startswith(b"bearer ")
+            if not uses_bearer:
+                cookie_header = headers.get(b"cookie", b"")
+                cookies = _parse_cookies(cookie_header)
+                header_token = headers.get(b"x-csrf-token", b"").decode("utf-8", errors="ignore")
+                cookie_token = cookies.get(settings.COOKIE_CSRF_NAME, "")
+                if not header_token or not cookie_token or not hmac.compare_digest(header_token, cookie_token):
+                    body = json.dumps({"detail": "Token CSRF inválido o ausente"}).encode("utf-8")
+                    resp_headers = [(b"content-type", b"application/json"), (b"content-length", str(len(body)).encode())]
+                    resp_headers.extend(SECURITY_HEADERS)
+                    await send({"type": "http.response.start", "status": 403, "headers": resp_headers})
+                    await send({"type": "http.response.body", "body": body})
+                    return
+
         async def send_with_headers(message):
             if message["type"] == "http.response.start":
                 h = list(message.get("headers", []))
-                # Add CORS header for browser requests
-                if origin:
+                # Add CORS header only for allowed origins
+                if origin_allowed:
                     h.append((b"access-control-allow-origin", origin))
                     h.append((b"access-control-allow-credentials", b"true"))
                     h.append((b"access-control-expose-headers", CORS_EXPOSE_HEADERS))
@@ -148,6 +191,11 @@ app = FastAPI(title=settings.APP_NAME, version=settings.VERSION, lifespan=lifesp
 
 app.add_middleware(CORSAndSecurityMiddleware)
 
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    logger.exception("Unhandled exception for %s %s", request.method, request.url.path)
+    return JSONResponse(status_code=500, content={"detail": "Error interno del servidor"})
+
 @app.get("/health")
 def health():
     return {"status": "ok", "app": settings.APP_NAME, "version": settings.VERSION}
@@ -155,7 +203,7 @@ def health():
 # ==================== Auth Endpoints ====================
 
 @app.post("/auth/login", response_model=LoginResponse)
-def login(data: LoginRequest, request: Request, db: Session = Depends(get_db)):
+def login(data: LoginRequest, request: Request, response: FastResponse, db: Session = Depends(get_db)):
     ip = request.client.host if request.client else "unknown"
     check_login_rate_limit(data.username, ip, db)
     user = db.query(User).filter(User.username == data.username).first()
@@ -188,16 +236,28 @@ def login(data: LoginRequest, request: Request, db: Session = Depends(get_db)):
     record_login_attempt(data.username, ip, True, db)
     access_token = create_access_token(user.id, user.role)
     refresh_token = create_refresh_token(user.id)
+    csrf_token = secrets.token_hex(32)
+    set_auth_cookies(response, access_token, refresh_token)
+    set_csrf_cookie(response, csrf_token)
     log_audit(user.id, "LOGIN", "auth", details="Inicio de sesión exitoso", ip_address=ip, db=db)
     return LoginResponse(
-        access_token=access_token,
-        refresh_token=refresh_token,
+        csrf_token=csrf_token,
         user={"id": user.id, "username": user.username, "role": user.role, "email": user.email or ""},
     )
 
+@app.post("/auth/logout")
+def logout(response: FastResponse):
+    clear_auth_cookies(response)
+    return {"message": "Sesión cerrada"}
+
 @app.post("/auth/refresh")
-def refresh_token(data: RefreshRequest, db: Session = Depends(get_db)):
-    payload = decode_token(data.refresh_token)
+def refresh_token(data: Optional[RefreshRequest] = None, request: Request = None, db: Session = Depends(get_db)):
+    refresh = data.refresh_token if data else None
+    if not refresh and request:
+        refresh = request.cookies.get(settings.COOKIE_REFRESH_NAME)
+    if not refresh:
+        raise HTTPException(status_code=401, detail="Token de actualización inválido")
+    payload = decode_token(refresh)
     if not payload or payload.get("type") != "refresh":
         raise HTTPException(status_code=401, detail="Token de actualización inválido")
     user = db.query(User).filter(User.id == int(payload["sub"])).first()
@@ -431,7 +491,8 @@ def export_all_excel(user: User = Depends(require_auth), db: Session = Depends(g
             filename="SupervisorPRO_Export.xlsx"
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al generar Excel: {str(e)}")
+        logger.exception("Error al generar Excel")
+        raise HTTPException(status_code=500, detail="No se pudo generar el archivo Excel.")
 
 @app.get("/export/administradores")
 def export_administradores(user: User = Depends(require_auth), db: Session = Depends(get_db)):
@@ -470,7 +531,8 @@ def export_administradores(user: User = Depends(require_auth), db: Session = Dep
         wb.save(fp)
         return FileResponse(fp, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", filename="Administradores.xlsx")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al generar Excel: {str(e)}")
+        logger.exception("Error al generar Excel")
+        raise HTTPException(status_code=500, detail="No se pudo generar el archivo Excel.")
 
 @app.get("/productos")
 def list_productos(
@@ -615,7 +677,8 @@ def report_providers_excel(
             filename="Reporte_Proveedores.xlsx"
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al generar Excel: {str(e)}")
+        logger.exception("Error al generar Excel")
+        raise HTTPException(status_code=500, detail="No se pudo generar el archivo Excel.")
 
 @app.get("/reports/ordenes")
 def report_ordenes(
@@ -698,7 +761,8 @@ def report_products_excel(
             filename="Reporte_Productos_Precios.xlsx"
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al generar Excel: {str(e)}")
+        logger.exception("Error al generar Excel")
+        raise HTTPException(status_code=500, detail="No se pudo generar el archivo Excel.")
 
 @app.delete("/reset-db")
 def reset_database(user: User = Depends(require_role("admin")), db: Session = Depends(get_db)):
@@ -709,8 +773,9 @@ def reset_database(user: User = Depends(require_role("admin")), db: Session = De
         db.commit()
         return {"status": "ok", "message": "Base de datos reiniciada exitosamente"}
     except Exception as e:
+        logger.exception("Error al reiniciar base de datos")
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"Error al reiniciar base de datos: {str(e)}")
+        raise HTTPException(status_code=500, detail="No se pudo reiniciar la base de datos.")
 
 
 @app.post("/backup")
@@ -719,8 +784,9 @@ def create_backup_endpoint(user: User = Depends(require_role("admin"))):
     try:
         result = create_backup()
         return {"status": "ok", "backup": result}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al crear backup: {str(e)}")
+    except Exception:
+        logger.exception("Error al crear backup")
+        raise HTTPException(status_code=500, detail="No se pudo crear el backup.")
 
 
 @app.get("/backup/info")
@@ -745,10 +811,12 @@ def restore_backup_endpoint(data: dict, user: User = Depends(require_role("admin
     try:
         result = restore_backup(filename)
         return result
-    except FileNotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al restaurar backup: {str(e)}")
+    except FileNotFoundError:
+        logger.exception("Backup no encontrado")
+        raise HTTPException(status_code=404, detail="El archivo de backup no existe.")
+    except Exception:
+        logger.exception("Error al restaurar backup")
+        raise HTTPException(status_code=500, detail="No se pudo restaurar el backup.")
 
 
 # ==================== PAC Module Endpoints ====================
@@ -788,7 +856,8 @@ async def pac_upload_document(file: UploadFile = File(...), user: User = Depends
         else:
             raise HTTPException(status_code=400, detail="Formato no soportado. Use .xlsx, .xls o .pdf")
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Error al leer el archivo: {str(e)}")
+        logger.exception("Error al leer el archivo")
+        raise HTTPException(status_code=400, detail="No se pudo leer el archivo. Verifique el formato.")
 
     if not documents:
         raise HTTPException(status_code=400, detail="No se encontraron registros válidos")
@@ -1038,7 +1107,8 @@ def pac_generate_custom_certificate(data: dict, user: User = Depends(require_rol
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al generar la certificación: {str(e)}")
+        logger.exception("Error al generar la certificación")
+        raise HTTPException(status_code=500, detail="No se pudo generar la certificación.")
 
 
 @app.get("/pac/template/download")
@@ -1182,7 +1252,8 @@ async def cam_upload_file(file: UploadFile = File(...), user: User = Depends(req
     except ValueError as e:
         raise HTTPException(status_code=409, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=422, detail=f"Error al procesar PDF CAM: {str(e)}")
+        logger.exception("Error al procesar PDF CAM")
+        raise HTTPException(status_code=422, detail="No se pudo procesar el PDF.")
 
 
 @app.get("/cam/extractions")
@@ -1271,7 +1342,8 @@ async def ce_upload_file(file: UploadFile = File(...), user: User = Depends(requ
     except ValueError as e:
         raise HTTPException(status_code=409, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=422, detail=f"Error al procesar PDF: {str(e)}")
+        logger.exception("Error al procesar PDF")
+        raise HTTPException(status_code=422, detail="No se pudo procesar el PDF.")
 
 
 @app.get("/ce/extractions")
@@ -1321,7 +1393,8 @@ def ce_export_excel(ids: Optional[str] = Query(None, description="Comma-separate
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al exportar: {str(e)}")
+        logger.exception("Error al exportar")
+        raise HTTPException(status_code=500, detail="No se pudo exportar el archivo.")
 
 
 @app.get("/ce/export-excel-by-admin/{admin_name}")
@@ -1335,7 +1408,8 @@ def ce_export_excel_by_admin(admin_name: str, user: User = Depends(require_auth)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al exportar: {str(e)}")
+        logger.exception("Error al exportar")
+        raise HTTPException(status_code=500, detail="No se pudo exportar el archivo.")
 
 
 @app.get("/procesos/export-excel-by-admin")
@@ -1348,7 +1422,8 @@ def procesos_export_excel_by_admin(admin_name: str = Query(...), user: User = De
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al exportar: {str(e)}")
+        logger.exception("Error al exportar")
+        raise HTTPException(status_code=500, detail="No se pudo exportar el archivo.")
 
 
 # ==================== Frontend SPA (single-deploy) ====================

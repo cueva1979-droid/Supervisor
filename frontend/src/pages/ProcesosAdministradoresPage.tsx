@@ -1,8 +1,16 @@
 import { useEffect, useState } from 'react';
 import { Users, Search, ChevronDown, ChevronRight, FileText, Edit3, Trash2, Save, X, AlertCircle, FileSpreadsheet } from 'lucide-react';
 import { getProcesosAdministradores, exportProcesosExcelByAdmin } from '../services/api';
+import { getCsrfToken } from '../services/auth';
 import CanEdit from '../components/CanEdit';
 import { API_BASE } from '../services/config';
+
+function csrfHeaders(method?: string): Record<string, string> {
+  const m = (method || 'GET').toUpperCase();
+  if (m === 'GET' || m === 'HEAD' || m === 'OPTIONS') return {};
+  const csrf = getCsrfToken();
+  return csrf ? { 'X-CSRF-Token': csrf } : {};
+}
 
 interface Proceso {
   id: string;
@@ -59,10 +67,10 @@ export default function ProcesosAdministradoresPage() {
     setError('');
     setSuccess('');
     try {
-      const token = localStorage.getItem('access_token');
       const res = await fetch(`${API_BASE}/cam/extractions/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders('PUT') },
         body: JSON.stringify(editForm),
       });
       if (!res.ok) {
@@ -83,10 +91,10 @@ export default function ProcesosAdministradoresPage() {
     setError('');
     setSuccess('');
     try {
-      const token = localStorage.getItem('access_token');
       const res = await fetch(`${API_BASE}/cam/extractions/${id}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
+        headers: csrfHeaders('DELETE'),
       });
       if (!res.ok) throw new Error('Error al eliminar');
       setSuccess('Registro eliminado exitosamente');

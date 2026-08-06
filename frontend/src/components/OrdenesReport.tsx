@@ -10,11 +10,6 @@ interface OrdenItem {
   administrador: string;
 }
 
-function authHeaders(): Record<string, string> {
-  const token = localStorage.getItem('access_token');
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
 export default function OrdenesReport() {
   const [items, setItems] = useState<OrdenItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,7 +24,7 @@ export default function OrdenesReport() {
     try {
       const params = new URLSearchParams({ page: String(p), per_page: String(perPage) });
       if (search) params.set('search', search);
-      const res = await fetch(`/reports/ordenes?${params}`, { headers: authHeaders() });
+      const res = await fetch(`/reports/ordenes?${params}`, { credentials: 'include' });
       const data = await res.json();
       setItems(data.items);
       setTotal(data.total);

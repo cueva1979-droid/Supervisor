@@ -7,11 +7,8 @@ interface Props {
 
 export default function ExportExcelButton({ href, label = 'Exportar Excel' }: Props) {
   const handleDownload = async () => {
-    const token = localStorage.getItem('access_token');
     try {
-      const res = await fetch(href, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
+      const res = await fetch(href, { credentials: 'include' });
       if (!res.ok) throw new Error('Error al descargar');
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);

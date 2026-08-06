@@ -1,10 +1,5 @@
 import type { ProductReportResponse } from '../types';
 
-function authHeaders(): Record<string, string> {
-  const token = localStorage.getItem('access_token');
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
 export async function getProductReport(params: {
   search?: string;
   producto?: string;
@@ -30,7 +25,7 @@ export async function getProductReport(params: {
   if (params.codigo_proceso) qs.set('codigo_proceso', params.codigo_proceso);
   if (params.page) qs.set('page', String(params.page));
   if (params.per_page) qs.set('per_page', String(params.per_page));
-  const res = await fetch(`/reports/products?${qs}`, { headers: authHeaders() });
+  const res = await fetch(`/reports/products?${qs}`, { credentials: 'include' });
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || 'Error al obtener reporte');
   return res.json();
 }

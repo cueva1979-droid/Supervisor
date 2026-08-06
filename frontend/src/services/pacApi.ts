@@ -1,20 +1,24 @@
-import { getAccessToken } from './auth';
+import { getCsrfToken } from './auth';
 import { API_BASE } from './config';
 
-function getAuthHeaders(): Record<string, string> {
-  const token = getAccessToken();
-  if (token) return { 'Authorization': `Bearer ${token}` };
-  return {};
+function csrfHeaders(method?: string): Record<string, string> {
+  const m = (method || 'GET').toUpperCase();
+  if (m === 'GET' || m === 'HEAD' || m === 'OPTIONS') return {};
+  const csrf = getCsrfToken();
+  return csrf ? { 'X-CSRF-Token': csrf } : {};
 }
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  const method = options?.method || 'GET';
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...getAuthHeaders(),
+    ...csrfHeaders(method),
     ...(options?.headers as Record<string, string> || {}),
   };
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
+    method,
+    credentials: 'include',
     headers,
   });
   if (!res.ok) {
@@ -30,7 +34,7 @@ export const pacAPI = {
   uploadDocument: (file: File) => {
     const form = new FormData();
     form.append('file', file);
-    return fetch(`${API_BASE}/pac/documents`, { method: 'POST', body: form, headers: getAuthHeaders() }).then(r => r.json());
+    return fetch(`${API_BASE}/pac/documents`, { method: 'POST', credentials: 'include', body: form, headers: csrfHeaders('POST') }).then(r => r.json());
   },
   updateDocument: (id: string, data: any) => request<any>(`/pac/documents/${id}`, {
     method: 'PUT',
@@ -52,7 +56,8 @@ export const pacAPI = {
   generateCustomCert: (data: any) =>
     fetch(`${API_BASE}/pac/certificates/generate-custom`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json', ...csrfHeaders('POST') },
       body: JSON.stringify(data),
     }).then(async r => {
       if (!r.ok) {

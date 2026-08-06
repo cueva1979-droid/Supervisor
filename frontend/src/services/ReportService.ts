@@ -1,10 +1,5 @@
 import type { ProviderReportResponse } from '../types';
 
-function authHeaders(): Record<string, string> {
-  const token = localStorage.getItem('access_token');
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
 export async function getProviderReport(params: {
   search?: string;
   orden_filtro?: string;
@@ -20,7 +15,7 @@ export async function getProviderReport(params: {
   if (params.fecha_hasta) qs.set('fecha_hasta', params.fecha_hasta);
   if (params.page) qs.set('page', String(params.page));
   if (params.per_page) qs.set('per_page', String(params.per_page));
-  const res = await fetch(`/reports/providers?${qs}`, { headers: authHeaders() });
+  const res = await fetch(`/reports/providers?${qs}`, { credentials: 'include' });
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || 'Error al obtener reporte');
   return res.json();
 }
