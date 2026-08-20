@@ -84,8 +84,12 @@ export default function ProcesosListado() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || 'Error al procesar PDF');
       setLastResult(data);
-      const total = data.procesos_creados || 1;
-      setSuccess(`PDF procesado exitosamente: ${total} registro(s) creado(s)`);
+      const createdCount = data.procesos_creados || 0;
+      const updatedCount = data.procesos_actualizados || 0;
+      let msg = `PDF procesado exitosamente`;
+      if (createdCount > 0) msg += `: ${createdCount} registro(s) creado(s)`;
+      if (updatedCount > 0) msg += createdCount > 0 ? `, ${updatedCount} actualizado(s)` : `: ${updatedCount} registro(s) actualizado(s)`;
+      setSuccess(msg + '.');
       setSelectedFile(null);
       if (fileRef.current) fileRef.current.value = '';
       fetchExtractions();

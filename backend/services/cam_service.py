@@ -335,44 +335,59 @@ def process_cam_pdf(filepath: str, filename: str, db: Session) -> dict:
             "estado": data.get("estado_proceso"),
         }]
 
-    # Validate duplicates for all process codes
     admin = data.get("administrador_contrato_actual")
-    for p in procesos_to_save:
-        pc = p.get("codigo")
-        if pc:
-            duplicate = check_duplicate_codigo_proceso(pc, db)
-            if duplicate:
-                raise ValueError(
-                    f"El código de proceso '{pc}' ya existe en el sistema "
-                    f"(archivo: {duplicate['filename']})"
-                )
-
+    estado_default = data.get("estado_proceso")
+    fecha_default = data.get("fecha_publicacion")
     now = datetime.utcnow().isoformat()
     from models import CAMExtraction
-    created = []
+    affected = []
+    created_count = 0
+    updated_count = 0
 
     for p in procesos_to_save:
-        ext_id = str(uuid.uuid4())
-        ext = CAMExtraction(
-            id=ext_id,
-            filename=filename,
-            codigo_proceso=p.get("codigo"),
-            administrador_contrato_actual=admin,
-            objeto_proceso=p.get("objeto"),
-            estado_proceso=p.get("estado") or data.get("estado_proceso"),
-            fecha_publicacion=p.get("fecha") or data.get("fecha_publicacion"),
-            raw_data=str(data),
-            fecha_procesamiento=now,
-        )
-        db.add(ext)
-        db.flush()
-        created.append(_extraction_to_dict(ext))
+        pc = p.get("codigo")
+        if not pc:
+            continue
+        existing = db.query(CAMExtraction).filter(CAMExtraction.codigo_proceso == pc).first()
+        if existing:
+            if admin:
+                existing.administrador_contrato_actual = admin
+            if p.get("objeto"):
+                existing.objeto_proceso = p["objeto"]
+            estado = p.get("estado") or estado_default
+            if estado:
+                existing.estado_proceso = estado
+            fecha = p.get("fecha") or fecha_default
+            if fecha:
+                existing.fecha_publicacion = fecha
+            existing.filename = filename
+            existing.fecha_procesamiento = now
+            db.flush()
+            updated_count += 1
+            affected.append(_extraction_to_dict(existing))
+        else:
+            ext = CAMExtraction(
+                id=str(uuid.uuid4()),
+                filename=filename,
+                codigo_proceso=pc,
+                administrador_contrato_actual=admin,
+                objeto_proceso=p.get("objeto"),
+                estado_proceso=p.get("estado") or estado_default,
+                fecha_publicacion=p.get("fecha") or fecha_default,
+                raw_data=str(data),
+                fecha_procesamiento=now,
+            )
+            db.add(ext)
+            db.flush()
+            created_count += 1
+            affected.append(_extraction_to_dict(ext))
 
     db.commit()
     # Return the first extraction as primary, with full list in metadata
-    result = created[0]
-    result["procesos_creados"] = len(created)
-    result["ids_creados"] = [c["id"] for c in created]
+    result = affected[0] if affected else {}
+    result["procesos_creados"] = created_count
+    result["procesos_actualizados"] = updated_count
+    result["ids_creados"] = [c["id"] for c in affected]
     return result
 
 

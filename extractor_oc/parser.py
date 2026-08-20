@@ -586,6 +586,8 @@ class PDFExtractor:
             parsed = self._parse_item_table_ce(table)
             if parsed:
                 items.extend(parsed)
+        if not items:
+            items = self._parse_items_from_text_ce()
         return items
 
     def _parse_item_table_ce(self, table: List[List[str]]) -> List[ItemOC]:
@@ -669,6 +671,36 @@ class PDFExtractor:
                 v_unitario=price,
                 subtotal=round(qty * price, 2),
                 partida_presupuestaria=pp_val,
+            ))
+        return items
+
+    def _parse_items_from_text_ce(self) -> List[ItemOC]:
+        items = []
+        item_re = re.compile(
+            r"^(\d{8,})\s+(.+?)\s+(\d+)\s+(\d[\d.,]*,\d{4})\s+(\d[\d.,]*,\d{4})\s+"
+            r"(\d[\d.,]*,\d{4})\s+(\d[\d.,]*,\d{4})\s+(\d[\d.,]*,\d{4})\s*(.*)$"
+        )
+        for line in self.text.split("\n"):
+            m = item_re.match(line.strip())
+            if not m:
+                continue
+            cpc = m.group(1)
+            desc = re.sub(r"\s+", " ", m.group(2)).strip()
+            if len(desc) < 5:
+                continue
+            cantidad = self._parse_number_ce(m.group(3))
+            v_unitario = self._parse_number_ce(m.group(4))
+            subtotal = self._parse_number_ce(m.group(6))
+            partida = re.sub(r"\s+", " ", m.group(9).strip())
+            if subtotal == 0:
+                subtotal = round(cantidad * v_unitario, 2)
+            items.append(ItemOC(
+                cpc=cpc,
+                descripcion=desc,
+                cantidad=cantidad,
+                v_unitario=v_unitario,
+                subtotal=subtotal,
+                partida_presupuestaria=partida,
             ))
         return items
 
