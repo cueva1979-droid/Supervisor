@@ -131,6 +131,7 @@ def _extract_procesos(tables: List, text: str) -> List[Dict]:
         for row in table:
             for cell in row:
                 cell_text = str(cell or '')
+                cell_text = re.sub(r'(\d{2,4})_(\d{2,4})', r'\1-\2', cell_text)
                 if CODIGO_CLEAN.search(cell_text) or suffix_re.search(cell_text):
                     data_cells.append(cell_text)
 
@@ -178,6 +179,7 @@ def _normalize_code(raw: str) -> str:
 
 
 def _parse_data_cell(cell_text: str, full_text: str) -> List[Dict]:
+    cell_text = re.sub(r'(\d{2,4})_(\d{2,4})', r'\1-\2', cell_text)
     lines = [l.strip() for l in cell_text.split('\n') if l.strip()]
     joined = ' '.join(lines)
 
