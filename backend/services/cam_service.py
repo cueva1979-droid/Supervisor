@@ -15,9 +15,9 @@ def _fix_encoding(text: str) -> str:
 
 UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "uploads")
 
-CODIGO_RE = re.compile(r'[A-Z]+(?:-[A-Z]+)*(?:\s*-\s*[A-Z]+)?-(?:\d{4}-\d{3,4}|\d{3,4}-\d{4})')
-CODIGO_CLEAN = re.compile(r'[A-Z]+(?:-[A-Z]+)*(?:-[A-Z]+)?-(?:\d{4}-\d{3,4}|\d{3,4}-\d{4})')
-CODIGO_MULTI = re.compile(r'((?:[A-Z]+-)+[A-Z]+)?\s*-?\s*(?:\d{4}-\d{3,4}|\d{3,4}-\d{4})')
+CODIGO_RE = re.compile(r'[A-Z]+(?:-[A-Z]+)*(?:\s*-\s*[A-Z]+)?-(?:\d{2,4}-\d{2,4})')
+CODIGO_CLEAN = re.compile(r'[A-Z]+(?:-[A-Z]+)*(?:-[A-Z]+)?-(?:\d{2,4}-\d{2,4})')
+CODIGO_MULTI = re.compile(r'((?:[A-Z]+-)+[A-Z]+)?\s*-?\s*(?:\d{2,4}-\d{2,4})')
 ESTADOS = ['Ejecución de Contrato', 'Ejecucion de Contrato', 'Adjudicado', 'Finalizado', 'Publicado', 'Suspendido', 'Adjudicación']
 ADMIN_RE = re.compile(r'([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ\s]+(?:/[a-z0-9]+))')
 
@@ -121,7 +121,7 @@ def _extract_estado(text: str, tables: List) -> Optional[str]:
 
 def _extract_procesos(tables: List, text: str) -> List[Dict]:
     # Collect ALL data cells containing process codes (multi-page support)
-    suffix_re = re.compile(r'[A-Z]+-(?:\d{4}-\d{3,4}|\d{3,4}-\d{4})')
+    suffix_re = re.compile(r'[A-Z]+-(?:\d{2,4}-\d{2,4})')
     data_cells = []
     has_header = False
     for table in tables:
@@ -153,7 +153,7 @@ def _extract_procesos(tables: List, text: str) -> List[Dict]:
 def _find_data_cell(tables: List) -> Optional[str]:
     best_cell = None
     best_len = float('inf')
-    suffix_re = re.compile(r'[A-Z]+-(?:\d{4}-\d{3,4}|\d{3,4}-\d{4})')
+    suffix_re = re.compile(r'[A-Z]+-(?:\d{2,4}-\d{2,4})')
     for table in tables:
         has_header = any(
             'Código' in str(cell) or 'Objeto del Proceso' in str(cell)
@@ -182,7 +182,7 @@ def _parse_data_cell(cell_text: str, full_text: str) -> List[Dict]:
     joined = ' '.join(lines)
 
     # Find all suffix codes first
-    suffix_re = re.compile(r'([A-Z]+-(?:\d{4}-\d{3,4}|\d{3,4}-\d{4}))')
+    suffix_re = re.compile(r'([A-Z]+-(?:\d{2,4}-\d{2,4}))')
     suffix_matches = list(suffix_re.finditer(joined))
     if not suffix_matches:
         return []
@@ -190,7 +190,7 @@ def _parse_data_cell(cell_text: str, full_text: str) -> List[Dict]:
     # Strategy: match lines that start with prefix pattern (PREFIX- text)
     # Each such line starts a new process block
     prefix_line_re = re.compile(r'^([A-Z]+(?:-[A-Z]+)*)-\s')
-    suffix_on_line_re = re.compile(r'[A-Z]+-(?:\d{4}-\d{3,4}|\d{3,4}-\d{4})')
+    suffix_on_line_re = re.compile(r'[A-Z]+-(?:\d{2,4}-\d{2,4})')
 
     # Find lines that are process starts (prefix line) or continuation
     process_blocks = []  # List of (prefix, [lines])
