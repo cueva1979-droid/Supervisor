@@ -18,14 +18,31 @@ DB_IS_SQLITE = True
 DB_DIR = get_data_dir()
 DATABASE_URL = os.getenv("DATABASE_URL", "")
 
-if DATABASE_URL:
-    DB_IS_SQLITE = False
-    if DATABASE_URL.startswith("postgres://"):
-        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
-    engine = create_engine(DATABASE_URL, echo=False, pool_pre_ping=True)
-else:
+def _fallback_sqlite():
+    global DATABASE_URL, engine, DB_IS_SQLITE
+    DB_IS_SQLITE = True
     DATABASE_URL = f"sqlite:///{os.path.join(DB_DIR, 'supervisor.db')}"
     engine = create_engine(DATABASE_URL, echo=False, connect_args={"check_same_thread": False})
+
+if DATABASE_URL:
+    DATABASE_URL = DATABASE_URL.strip()
+    if DATABASE_URL.startswith("postgres://"):
+        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    if not DATABASE_URL.startswith("postgresql://"):
+        print(f"[db] DATABASE_URL no comienza con postgresql://. Valor: {DATABASE_URL[:30]}...")
+        _fallback_sqlite()
+    else:
+        try:
+            engine = create_engine(DATABASE_URL, echo=False, pool_pre_ping=True)
+            with engine.connect() as conn:
+                conn.execute(text("SELECT 1"))
+            DB_IS_SQLITE = False
+            print("[db] Conectado a PostgreSQL")
+        except Exception as e:
+            print(f"[db] ERROR: No se pudo conectar a PostgreSQL: {e}")
+            _fallback_sqlite()
+else:
+    _fallback_sqlite()
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()

@@ -85,7 +85,7 @@ SECURITY_HEADERS = [
 ]
 
 UNSAFE_METHODS = (b"POST", b"PUT", b"PATCH", b"DELETE")
-CSRF_EXEMPT_PATHS = ("/auth/login", "/auth/refresh", "/auth/logout", "/health")
+CSRF_EXEMPT_PATHS = ("/auth/login", "/auth/refresh", "/auth/logout", "/health", "/backup", "/backup/auto-toggle", "/backup/restore")
 
 def _origin_allowed(origin: bytes) -> bool:
     try:
@@ -143,7 +143,8 @@ class CORSAndSecurityMiddleware:
         # CSRF protection for state-changing requests authenticated via cookies.
         # Requests that carry a Bearer token (header) are exempt because CSRF
         # only targets cookie-based sessions.
-        if settings.CSRF_ENABLED and method_bytes in UNSAFE_METHODS and path not in CSRF_EXEMPT_PATHS:
+        _is_exempt = any(path == p or path.startswith(p + "/") for p in CSRF_EXEMPT_PATHS)
+        if settings.CSRF_ENABLED and method_bytes in UNSAFE_METHODS and not _is_exempt:
             auth_header = headers.get(b"authorization", b"")
             uses_bearer = auth_header.lower().startswith(b"bearer ")
             if not uses_bearer:

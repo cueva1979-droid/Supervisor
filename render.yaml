@@ -1,16 +1,13 @@
 services:
   - type: web
     name: supervisor
-    runtime: python
+    runtime: python@3.12
     plan: free
     buildCommand: |
-      cd frontend
-      npm install
-      npm run build
-      cd ..
-      pip install -r backend/requirements.txt
+      cd frontend && npm install && npm run build
+      cd .. && pip install -r backend/requirements.txt
     startCommand: python run.py
-    healthCheckPath: /
+    healthCheckPath: /health
     envVars:
       - key: DATABASE_URL
         sync: false

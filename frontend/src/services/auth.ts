@@ -18,6 +18,8 @@ export interface LoginResponse {
 }
 
 export function getCsrfToken(): string {
+  const stored = localStorage.getItem('csrf_token');
+  if (stored) return stored;
   const match = document.cookie.split('; ').find((row) => row.startsWith(`${CSRF_COOKIE_NAME}=`));
   return match ? decodeURIComponent(match.split('=').slice(1).join('=')) : '';
 }
@@ -33,7 +35,11 @@ export async function login(username: string, password: string): Promise<LoginRe
     const err = await res.json().catch(() => ({ detail: 'Error de conexión' }));
     throw new Error(err.detail || `Error ${res.status}`);
   }
-  return res.json();
+  const data = await res.json();
+  if (data.csrf_token) {
+    localStorage.setItem('csrf_token', data.csrf_token);
+  }
+  return data;
 }
 
 export async function refreshToken(): Promise<void> {
@@ -79,4 +85,5 @@ export function setUser(user: UserInfo) {
 
 export function clearUser() {
   localStorage.removeItem('user');
+  localStorage.removeItem('csrf_token');
 }

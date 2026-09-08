@@ -175,7 +175,17 @@ def _find_data_cell(tables: List) -> Optional[str]:
 
 
 def _normalize_code(raw: str) -> str:
-    return re.sub(r'\s+', '', raw)
+    raw = re.sub(r'\s+', '', raw)
+    raw = re.sub(r'(\d{2,4})_(\d{2,4})', r'\1-\2', raw)
+    return raw
+
+
+def _normalize_codigo(codigo: str) -> str:
+    if not codigo:
+        return codigo
+    codigo = re.sub(r'\s+', '', codigo)
+    codigo = re.sub(r'(\d{2,4})_(\d{2,4})', r'\1-\2', codigo)
+    return codigo.upper()
 
 
 def _parse_data_cell(cell_text: str, full_text: str) -> List[Dict]:
@@ -320,6 +330,7 @@ def check_duplicate_codigo_proceso(codigo: str, db: Session) -> Optional[dict]:
     from models import CAMExtraction
     if not codigo:
         return None
+    codigo = _normalize_codigo(codigo)
     existing = db.query(CAMExtraction).filter(CAMExtraction.codigo_proceso == codigo).first()
     if existing:
         return _extraction_to_dict(existing)
@@ -350,6 +361,8 @@ def process_cam_pdf(filepath: str, filename: str, db: Session) -> dict:
         pc = p.get("codigo")
         if not pc:
             continue
+        pc = _normalize_codigo(pc)
+        p["codigo"] = pc
         existing = db.query(CAMExtraction).filter(CAMExtraction.codigo_proceso == pc).first()
         if existing:
             if admin:
@@ -428,10 +441,12 @@ def update_extraction(extraction_id: str, data: dict, db: Session) -> Optional[d
     allowed = ["administrador_contrato_actual", "objeto_proceso", "estado_proceso", "codigo_proceso"]
     for key, value in data.items():
         if key in allowed and value is not None:
-            if key == "codigo_proceso" and value != ext.codigo_proceso:
-                duplicate = check_duplicate_codigo_proceso(value, db)
-                if duplicate:
-                    raise ValueError(f"El código de proceso '{value}' ya existe en el sistema (archivo: {duplicate['filename']})")
+            if key == "codigo_proceso":
+                value = _normalize_codigo(value)
+                if value != ext.codigo_proceso:
+                    duplicate = check_duplicate_codigo_proceso(value, db)
+                    if duplicate:
+                        raise ValueError(f"El código de proceso '{value}' ya existe en el sistema (archivo: {duplicate['filename']})")
             setattr(ext, key, value)
     db.commit()
     db.refresh(ext)

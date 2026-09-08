@@ -39,7 +39,7 @@ export default function ConfigPage() {
     setBackingUp(true);
     setBackupMsg('');
     try {
-      const res = await fetch(`${API_BASE}/backup`, { method: 'POST', credentials: 'include', headers: authHeaders() });
+      const res = await fetch(`${API_BASE}/backup`, { method: 'POST', credentials: 'include', headers: authHeaders('POST') });
       if (!res.ok) throw new Error((await res.json()).detail || 'Error');
       const data = await res.json();
       setBackupMsg(`Backup creado: ${data.backup.filename}`);
@@ -55,7 +55,7 @@ export default function ConfigPage() {
       const res = await fetch(`${API_BASE}/backup/auto-toggle`, {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        headers: { 'Content-Type': 'application/json', ...authHeaders('POST') },
         body: JSON.stringify({ enabled }),
       });
       if (res.ok) loadBackupInfo();
@@ -71,7 +71,7 @@ export default function ConfigPage() {
       const res = await fetch(`${API_BASE}/backup/restore`, {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        headers: { 'Content-Type': 'application/json', ...authHeaders('POST') },
         body: JSON.stringify({ filename: restoreFile }),
       });
       if (!res.ok) throw new Error((await res.json()).detail || 'Error');
