@@ -41,7 +41,7 @@ class RecordCreate(RecordBase):
 
 class RecordUpdate(RecordBase):
     plazo_entrega: Optional[str] = None
-    items: List[ItemCreate] = []
+    items: Optional[List[ItemCreate]] = None
 
 class RecordResponse(RecordBase):
     id: int
