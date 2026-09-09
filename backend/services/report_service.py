@@ -3,16 +3,18 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from models import Provider, Record
 from services.security import sanitize_excel
+from database import DB_IS_SQLITE
 
 def get_provider_report(db: Session, search: Optional[str] = None,
-                        orden_filtro: Optional[str] = None,
-                        fecha_desde: Optional[str] = None,
-                        fecha_hasta: Optional[str] = None,
-                        page: int = 1, per_page: int = 20) -> Dict:
+                         orden_filtro: Optional[str] = None,
+                         fecha_desde: Optional[str] = None,
+                         fecha_hasta: Optional[str] = None,
+                         page: int = 1, per_page: int = 20) -> Dict:
+    _agg = func.group_concat if DB_IS_SQLITE else func.string_agg
     subq = db.query(
         Record.provider_id,
-        func.group_concat(Record.numero_orden, ", ").label("ordenes"),
-        func.group_concat(Record.objeto_contratacion, " | ").label("objetos")
+        _agg(Record.numero_orden, ", ").label("ordenes"),
+        _agg(Record.objeto_contratacion, " | ").label("objetos")
     ).filter(Record.numero_orden.isnot(None), Record.numero_orden != ""
     ).group_by(Record.provider_id).subquery()
 
@@ -44,7 +46,11 @@ def get_provider_report(db: Session, search: Optional[str] = None,
     query = query.group_by(Provider.id, Provider.nombre, Provider.ruc, subq.c.ordenes, subq.c.objetos)
     query = query.order_by(Provider.nombre)
 
-    total = query.count()
+    try:
+        total = query.count()
+    except Exception:
+        # Fallback for Postgres with group_by
+        total = len(query.all())
     rows = query.offset((page - 1) * per_page).limit(per_page).all()
 
     items = []
@@ -94,10 +100,11 @@ def generate_provider_excel(db: Session, search: Optional[str] = None,
     from openpyxl.utils import get_column_letter
     import os, sys, datetime
 
+    _agg = func.group_concat if DB_IS_SQLITE else func.string_agg
     subq = db.query(
         Record.provider_id,
-        func.group_concat(Record.numero_orden, ", ").label("ordenes"),
-        func.group_concat(Record.objeto_contratacion, " | ").label("objetos")
+        _agg(Record.numero_orden, ", ").label("ordenes"),
+        _agg(Record.objeto_contratacion, " | ").label("objetos")
     ).filter(Record.numero_orden.isnot(None), Record.numero_orden != ""
     ).group_by(Record.provider_id).subquery()
 
