@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { LayoutDashboard, Users, FileText, DollarSign, PieChart as PieIcon, BarChart3 } from 'lucide-react';
+import { LayoutDashboard, Users, FileText, DollarSign, PieChart as PieIcon, BarChart3, TrendingUp } from 'lucide-react';
 import { getDashboard } from '../services/api';
 import type { DashboardData } from '../types';
 
@@ -66,40 +66,95 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="card">
-        <div className="card-header"><PieIcon size={18} /> Órdenes por Mes — Diagrama Circular</div>
-        {ordenes.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-secondary)' }}>Sin datos</div>
-        ) : (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap', justifyContent: 'center', padding: 12 }}>
-            <svg width={200} height={200} viewBox="0 0 200 200" style={{ flexShrink: 0 }}>
-              {(() => {
-                let acc = 0;
-                return ordenes.map(([label, value], i) => {
-                  const start = (acc / totalOrdenesPie) * 360;
-                  acc += value;
-                  const end = (acc / totalOrdenesPie) * 360;
-                  const color = PIE_COLORS[i % PIE_COLORS.length];
-                  if (value === 0) return null;
-                  return <path key={label} d={describeArc(100, 100, 80, start, end)} fill={color} stroke="white" strokeWidth={2} />;
-                });
-              })()}
-              <circle cx={100} cy={100} r={45} fill="var(--bg, white)" />
-              <text x={100} y={100} textAnchor="middle" dy={-4} fontSize={18} fontWeight={800} fill="var(--text)">{totalOrdenesPie}</text>
-              <text x={100} y={100} textAnchor="middle" dy={12} fontSize={11} fill="var(--text-secondary)">Total</text>
-            </svg>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 180 }}>
-              {ordenes.map(([label, value], i) => (
-                <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
-                  <span style={{ width: 14, height: 14, borderRadius: 3, background: PIE_COLORS[i % PIE_COLORS.length], flexShrink: 0 }} />
-                  <span style={{ flex: 1 }}>{label}</span>
-                  <strong>{value}</strong>
-                  <span style={{ color: 'var(--text-secondary)', fontSize: 12 }}>({((value / totalOrdenesPie) * 100).toFixed(1)}%)</span>
-                </div>
-              ))}
+      <div className="grid-2">
+        <div className="card">
+          <div className="card-header"><PieIcon size={18} /> Órdenes por Mes — Diagrama Circular</div>
+          {ordenes.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-secondary)' }}>Sin datos</div>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap', justifyContent: 'center', padding: 12 }}>
+              <svg width={200} height={200} viewBox="0 0 200 200" style={{ flexShrink: 0 }}>
+                {(() => {
+                  let acc = 0;
+                  return ordenes.map(([label, value], i) => {
+                    const start = (acc / totalOrdenesPie) * 360;
+                    acc += value;
+                    const end = (acc / totalOrdenesPie) * 360;
+                    const color = PIE_COLORS[i % PIE_COLORS.length];
+                    if (value === 0) return null;
+                    return <path key={label} d={describeArc(100, 100, 80, start, end)} fill={color} stroke="white" strokeWidth={2} />;
+                  });
+                })()}
+                <circle cx={100} cy={100} r={45} fill="var(--bg, white)" />
+                <text x={100} y={100} textAnchor="middle" dy={-4} fontSize={18} fontWeight={800} fill="var(--text)">{totalOrdenesPie}</text>
+                <text x={100} y={100} textAnchor="middle" dy={12} fontSize={11} fill="var(--text-secondary)">Total</text>
+              </svg>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 180 }}>
+                {ordenes.map(([label, value], i) => (
+                  <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+                    <span style={{ width: 14, height: 14, borderRadius: 3, background: PIE_COLORS[i % PIE_COLORS.length], flexShrink: 0 }} />
+                    <span style={{ flex: 1 }}>{label}</span>
+                    <strong>{value}</strong>
+                    <span style={{ color: 'var(--text-secondary)', fontSize: 12 }}>({((value / totalOrdenesPie) * 100).toFixed(1)}%)</span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
+
+        <div className="card">
+          <div className="card-header"><TrendingUp size={18} /> Evolución de Compras por Mes</div>
+          {(() => {
+            const sorted = [...ordenes].sort((a, b) => {
+              const pa = a[0].split('/'); const pb = b[0].split('/');
+              const da = pa.length === 2 ? new Date(parseInt(pa[1]), parseInt(pa[0]) - 1) : new Date(a[0]);
+              const db = pb.length === 2 ? new Date(parseInt(pb[1]), parseInt(pb[0]) - 1) : new Date(b[0]);
+              return da.getTime() - db.getTime();
+            });
+            if (sorted.length === 0) return <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-secondary)' }}>Sin datos</div>;
+            const maxV = Math.max(...sorted.map(([, v]) => v), 1);
+            const W = 340, H = 180, padL = 32, padR = 12, padT = 12, padB = 28;
+            const innerW = W - padL - padR;
+            const innerH = H - padT - padB;
+            const stepX = sorted.length === 1 ? 0 : innerW / (sorted.length - 1);
+            const points = sorted.map(([, v], i) => {
+              const x = padL + i * stepX;
+              const y = padT + innerH - (v / maxV) * innerH;
+              return { x, y, v };
+            });
+            const pathD = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+            const areaD = `${pathD} L ${points[points.length - 1].x} ${padT + innerH} L ${points[0].x} ${padT + innerH} Z`;
+            return (
+              <div style={{ padding: '8px 12px' }}>
+                <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display: 'block' }}>
+                  {/* grid */}
+                  {[0, 0.5, 1].map(t => {
+                    const y = padT + innerH * t;
+                    return <line key={t} x1={padL} x2={W - padR} y1={y} y2={y} stroke="var(--border, #e5e7eb)" strokeDasharray="4 4" />;
+                  })}
+                  {[0, 0.5, 1].map(t => {
+                    const v = Math.round(maxV * (1 - t));
+                    const y = padT + innerH * t;
+                    return <text key={v} x={2} y={y + 4} fontSize={10} fill="var(--text-secondary)">{v}</text>;
+                  })}
+                  <path d={areaD} fill="rgba(30,64,175,0.12)" stroke="none" />
+                  <path d={pathD} fill="none" stroke="#1e40af" strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
+                  {points.map((p, i) => (
+                    <g key={i}>
+                      <circle cx={p.x} cy={p.y} r={4} fill="#1e40af" stroke="white" strokeWidth={2} />
+                      <text x={p.x} y={p.y - 10} textAnchor="middle" fontSize={10} fontWeight={700} fill="#1e40af">{p.v}</text>
+                    </g>
+                  ))}
+                  {sorted.map(([label], i) => (
+                    <text key={label} x={padL + i * stepX} y={H - 8} textAnchor="middle" fontSize={10} fill="var(--text-secondary)">{label}</text>
+                  ))}
+                </svg>
+                <p style={{ textAlign: 'center', fontSize: 11, color: 'var(--text-secondary)', marginTop: 4 }}>Tendencia mensual de órdenes registradas</p>
+              </div>
+            );
+          })()}
+        </div>
       </div>
 
       <div className="card">
