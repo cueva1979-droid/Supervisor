@@ -29,7 +29,7 @@ class Record(Base):
     administrador = Column(String(255), nullable=True)
     plazo_entrega = Column(String(100), nullable=True)
     monto_total = Column(Float, default=0.0)
-    moneda = Column(String(10), default="PYG")
+    moneda = Column(String(10), default="USD")
     estado = Column(String(50), default="completado")
     observaciones = Column(Text, nullable=True)
     fecha_procesamiento = Column(DateTime, default=datetime.datetime.utcnow)

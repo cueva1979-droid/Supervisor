@@ -62,7 +62,7 @@ export default function HistoryPage() {
         administrador: (data as any).administrador || '',
         plazo_entrega: (data as any).plazo_entrega || '',
         monto_total: data.monto_total ?? 0,
-        moneda: (data as any).moneda || 'PYG',
+        moneda: (data as any).moneda || 'USD',
         estado: data.estado || '',
         observaciones: (data as any).observaciones || '',
       });
@@ -265,7 +265,7 @@ export default function HistoryPage() {
                 <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>Administrador<input className="form-input" value={editForm.administrador} onChange={e => setEditForm({ ...editForm, administrador: e.target.value })} /></label>
                 <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>Plazo Entrega<input className="form-input" value={editForm.plazo_entrega} onChange={e => setEditForm({ ...editForm, plazo_entrega: e.target.value })} /></label>
                 <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>Estado<input className="form-input" value={editForm.estado} onChange={e => setEditForm({ ...editForm, estado: e.target.value })} /></label>
-                <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>Moneda<input className="form-input" value={editForm.moneda || 'PYG'} onChange={e => setEditForm({ ...editForm, moneda: e.target.value })} /></label>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>Moneda<input className="form-input" value={editForm.moneda || 'USD'} onChange={e => setEditForm({ ...editForm, moneda: e.target.value })} /></label>
               </div>
               <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>Objeto Contratación<textarea className="form-input" rows={3} value={editForm.objeto_contratacion} onChange={e => setEditForm({ ...editForm, objeto_contratacion: e.target.value })} /></label>
               <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>Observaciones<textarea className="form-input" rows={2} value={editForm.observaciones} onChange={e => setEditForm({ ...editForm, observaciones: e.target.value })} /></label>

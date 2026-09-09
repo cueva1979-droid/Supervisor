@@ -32,7 +32,7 @@ class RecordBase(BaseModel):
     administrador: Optional[str] = None
     plazo_entrega: Optional[str] = None
     monto_total: float = 0.0
-    moneda: str = "PYG"
+    moneda: str = "USD"
     estado: str = "completado"
     observaciones: Optional[str] = None
 

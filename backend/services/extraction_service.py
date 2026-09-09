@@ -79,7 +79,7 @@ def process_document(filepath: str, filename: str, db: Session) -> Record:
         administrador=data.get("administrador"),
         plazo_entrega=data.get("plazo_entrega"),
         monto_total=data.get("monto_total", 0),
-        moneda="PYG",
+        moneda="USD",
         estado="completado",
         provider_id=provider.id,
     )

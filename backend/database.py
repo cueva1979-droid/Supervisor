@@ -63,6 +63,13 @@ def init_db():
             conn.commit()
         except Exception:
             pass
+    # Migrar moneda PYG -> USD
+    with engine.connect() as conn:
+        try:
+            conn.execute(text("UPDATE records SET moneda='USD' WHERE moneda='PYG'"))
+            conn.commit()
+        except Exception:
+            pass
     if not DB_IS_SQLITE:
         return
     with engine.connect() as conn:
