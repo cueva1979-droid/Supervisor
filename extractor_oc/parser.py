@@ -757,6 +757,9 @@ class PDFExtractor:
                 cleaned = cleaned.replace(",", "")
         elif "," in cleaned:
             cleaned = cleaned.replace(",", ".")
+        elif "." in cleaned:
+            if re.match(r'^\d{1,3}(\.\d{3})+$', cleaned):
+                cleaned = cleaned.replace(".", "")
         try:
             return float(cleaned)
         except ValueError:

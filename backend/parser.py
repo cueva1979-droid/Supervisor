@@ -547,6 +547,10 @@ class DocumentParser:
                 cleaned = cleaned.replace(',', '')
         elif ',' in cleaned:
             cleaned = cleaned.replace(',', '.')
+        elif '.' in cleaned:
+            # Ecuador: dot = thousands separator (e.g. 4.235 -> 4235), comma = decimal
+            if re.match(r'^\d{1,3}(\.\d{3})+$', cleaned):
+                cleaned = cleaned.replace('.', '')
         try:
             return float(cleaned)
         except ValueError:
