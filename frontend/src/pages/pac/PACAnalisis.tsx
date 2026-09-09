@@ -133,16 +133,17 @@ export default function PACAnalisis() {
           <table>
             <thead>
               <tr>
-                <th>Archivo</th><th>Período</th><th>Categoría</th><th>Descripción</th><th>Costo Unit.</th><th>Estado</th>
+                <th>Archivo</th><th>Partida</th><th>Período</th><th>Categoría</th><th>Descripción</th><th>Costo Unit.</th><th>Estado</th>
               </tr>
             </thead>
             <tbody>
               {analysisData.length === 0 ? (
-                <tr><td colSpan={6} style={{ textAlign: 'center', padding: 24, color: 'var(--text-secondary)' }}>No hay documentos para analizar.</td></tr>
+                <tr><td colSpan={7} style={{ textAlign: 'center', padding: 24, color: 'var(--text-secondary)' }}>No hay documentos para analizar.</td></tr>
               ) : (
                 analysisData.map((doc: any) => (
                   <tr key={doc.id} style={getRowStyle(doc.status)}>
                     <td style={{ fontSize: 13 }}>{truncate(doc.filename, 40)}</td>
+                    <td style={{ fontSize: 13, fontFamily: 'monospace' }}>{doc.partida_presupuestaria || <span style={{ color: '#9ca3af' }}>-</span>}</td>
                     <td>{doc.periodo || <span style={{ color: '#9ca3af' }}>No definido</span>}</td>
                     <td>{doc.periodCategory ? <strong>{doc.periodCategory}</strong> : <span style={{ color: '#9ca3af' }}>-</span>}</td>
                     <td title={doc.descripcion}>{truncate(doc.descripcion, 80) || '-'}</td>

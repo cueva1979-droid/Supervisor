@@ -917,7 +917,7 @@ async def pac_upload_document(file: UploadFile = File(...), user: User = Depends
         "message": f"Proceso completado: {inserted_count} nuevos, {updated_count} actualizados",
         "inserted": inserted_count,
         "updated": updated_count,
-        "extractedData": documents[:100],
+        "extractedData": documents,
     }
 
 
