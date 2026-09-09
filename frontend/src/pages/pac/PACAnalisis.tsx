@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { CalendarDays, AlertTriangle, Clock, CheckCircle, Pencil } from 'lucide-react';
+import { CalendarDays, AlertTriangle, Clock, CheckCircle, Pencil, Save, Check } from 'lucide-react';
 import { pacAPI } from '../../services/pacApi';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -67,6 +67,8 @@ export default function PACAnalisis() {
   const [analysisData, setAnalysisData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [pending, setPending] = useState<Record<string, string>>({});
+  const [savedId, setSavedId] = useState<string | null>(null);
   const [summary, setSummary] = useState({ current: 0, past: 0, future: 0, unknown: 0 });
 
   useEffect(() => {
@@ -87,7 +89,29 @@ export default function PACAnalisis() {
     }
   };
 
+  const handleSelectChange = (docId: string, nuevoEstado: string) => {
+    setPending(prev => ({ ...prev, [docId]: nuevoEstado }));
+  };
+
+  const handleSave = async (docId: string) => {
+    const nuevoEstado = pending[docId];
+    if (!nuevoEstado) return;
+    setSavingId(docId);
+    try {
+      await pacAPI.updateDocument(docId, { estado_ejecucion: nuevoEstado });
+      setAnalysisData(prev => prev.map(d => d.id === docId ? { ...d, estado_ejecucion: nuevoEstado } : d));
+      setPending(prev => { const n = { ...prev }; delete n[docId]; return n; });
+      setSavedId(docId);
+      setTimeout(() => setSavedId(null), 2000);
+    } catch (err: any) {
+      alert(err.message || 'Error al guardar');
+    } finally {
+      setSavingId(null);
+    }
+  };
+
   const handleEstadoChange = async (docId: string, nuevoEstado: string) => {
+    // compat: auto-save fallback
     setSavingId(docId);
     try {
       await pacAPI.updateDocument(docId, { estado_ejecucion: nuevoEstado });
@@ -186,16 +210,32 @@ export default function PACAnalisis() {
                     </td>
                     <td>
                       {canEdit ? (
-                        <select
-                          value={doc.estado_ejecucion || 'Pendiente'}
-                          onChange={e => handleEstadoChange(doc.id, e.target.value)}
-                          disabled={savingId === doc.id}
-                          style={{ padding: '4px 8px', borderRadius: 8, fontSize: 12, fontWeight: 500, cursor: canEdit ? 'pointer' : 'default', ...getEstadoEjecucionStyle(doc.estado_ejecucion || 'Pendiente') }}
-                        >
-                          {ESTADOS_EJECUCION.map(opt => (
-                            <option key={opt} value={opt}>{opt}</option>
-                          ))}
-                        </select>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <select
+                            value={pending[doc.id] ?? doc.estado_ejecucion ?? 'Pendiente'}
+                            onChange={e => handleSelectChange(doc.id, e.target.value)}
+                            disabled={savingId === doc.id}
+                            style={{ padding: '4px 8px', borderRadius: 8, fontSize: 12, fontWeight: 500, cursor: 'pointer', minWidth: 130, ...getEstadoEjecucionStyle(pending[doc.id] ?? doc.estado_ejecucion ?? 'Pendiente') }}
+                          >
+                            {ESTADOS_EJECUCION.map(opt => (
+                              <option key={opt} value={opt}>{opt}</option>
+                            ))}
+                          </select>
+                          {pending[doc.id] !== undefined && pending[doc.id] !== (doc.estado_ejecucion ?? 'Pendiente') && (
+                            <button
+                              onClick={() => handleSave(doc.id)}
+                              disabled={savingId === doc.id}
+                              title="Guardar cambio"
+                              className="btn btn-primary"
+                              style={{ padding: '4px 10px', fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}
+                            >
+                              <Save size={14} /> {savingId === doc.id ? 'Guardando...' : 'Guardar'}
+                            </button>
+                          )}
+                          {savedId === doc.id && (
+                            <span style={{ color: '#065f46', display: 'inline-flex', alignItems: 'center', gap: 2, fontSize: 12 }}><Check size={14} /> Guardado</span>
+                          )}
+                        </div>
                       ) : (
                         <span style={{ padding: '2px 10px', borderRadius: 12, fontSize: 12, fontWeight: 500, ...getEstadoEjecucionStyle(doc.estado_ejecucion || 'Pendiente') }}>
                           {doc.estado_ejecucion || 'Pendiente'}
@@ -208,7 +248,7 @@ export default function PACAnalisis() {
             </tbody>
           </table>
         </div>
-        <p style={{ marginTop: 8, fontSize: 12, color: 'var(--text-secondary)' }}>Opciones: En tramite • Pendiente • En Ejecucion. El cambio se guarda automáticamente.</p>
+        <p style={{ marginTop: 8, fontSize: 12, color: 'var(--text-secondary)' }}>Opciones: En tramite • Pendiente • En Ejecucion. Seleccione un valor y pulse <strong>Guardar</strong> para persistir el cambio (backend <code>PUT /pac/documents/{"{id}"}</code>).</p>
       </div>
     </div>
   );
