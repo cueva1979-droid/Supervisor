@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { CalendarDays, AlertTriangle, Clock, CheckCircle } from 'lucide-react';
+import { CalendarDays, AlertTriangle, Clock, CheckCircle, Pencil } from 'lucide-react';
 import { pacAPI } from '../../services/pacApi';
+import { useAuth } from '../../contexts/AuthContext';
 
 const PERIOD_DEFINITIONS: Record<string, { code: string; label: string; months: string }> = {
   C1: { code: 'C1', label: 'Cuatrimestre 1', months: 'Enero - Abril' },
@@ -11,6 +12,17 @@ const PERIOD_DEFINITIONS: Record<string, { code: string; label: string; months: 
 const STATUS_LABELS: Record<string, string> = {
   current: 'Período Actual', past: 'Período Vencido', future: 'Período Futuro', unknown: 'Sin definir',
 };
+
+const ESTADOS_EJECUCION = ['En tramite', 'Pendiente', 'En Ejecucion'] as const;
+
+function getEstadoEjecucionStyle(estado: string): React.CSSProperties {
+  switch (estado) {
+    case 'En Ejecucion': return { background: '#dbeafe', color: '#1e40af', border: '1px solid #93c5fd' };
+    case 'En tramite': return { background: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d' };
+    case 'Pendiente': return { background: '#fee2e2', color: '#991b1b', border: '1px solid #fca5a5' };
+    default: return { background: '#f3f4f6', color: '#6b7280', border: '1px solid #d1d5db' };
+  }
+}
 
 function formatCurrency(value: number | null | undefined): string {
   if (value === null || value === undefined) return '-';
@@ -50,8 +62,11 @@ function getRowStyle(status: string): React.CSSProperties {
 }
 
 export default function PACAnalisis() {
+  const { user } = useAuth();
+  const canEdit = !!user && user.role !== 'viewer';
   const [analysisData, setAnalysisData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [savingId, setSavingId] = useState<string | null>(null);
   const [summary, setSummary] = useState({ current: 0, past: 0, future: 0, unknown: 0 });
 
   useEffect(() => {
@@ -69,6 +84,18 @@ export default function PACAnalisis() {
       console.error('Error loading analysis:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleEstadoChange = async (docId: string, nuevoEstado: string) => {
+    setSavingId(docId);
+    try {
+      await pacAPI.updateDocument(docId, { estado_ejecucion: nuevoEstado });
+      setAnalysisData(prev => prev.map(d => d.id === docId ? { ...d, estado_ejecucion: nuevoEstado } : d));
+    } catch (err: any) {
+      alert(err.message || 'Error al actualizar estado');
+    } finally {
+      setSavingId(null);
     }
   };
 
@@ -128,17 +155,20 @@ export default function PACAnalisis() {
       </div>
 
       <div className="card">
-        <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16 }}>Análisis de Documentos por Período</h3>
+        <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+          Análisis de Documentos por Período
+          <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 4 }}><Pencil size={12} /> Editable</span>
+        </h3>
         <div className="table-responsive">
           <table>
             <thead>
               <tr>
-                <th>Archivo</th><th>Partida</th><th>Período</th><th>Categoría</th><th>Descripción</th><th>Costo Unit.</th><th>Estado</th>
+                <th>Archivo</th><th>Partida</th><th>Período</th><th>Categoría</th><th>Descripción</th><th>Costo Unit.</th><th>Estado Período</th><th>Estado Ejecución</th>
               </tr>
             </thead>
             <tbody>
               {analysisData.length === 0 ? (
-                <tr><td colSpan={7} style={{ textAlign: 'center', padding: 24, color: 'var(--text-secondary)' }}>No hay documentos para analizar.</td></tr>
+                <tr><td colSpan={8} style={{ textAlign: 'center', padding: 24, color: 'var(--text-secondary)' }}>No hay documentos para analizar.</td></tr>
               ) : (
                 analysisData.map((doc: any) => (
                   <tr key={doc.id} style={getRowStyle(doc.status)}>
@@ -154,12 +184,31 @@ export default function PACAnalisis() {
                         {STATUS_LABELS[doc.status] || 'Sin definir'}
                       </span>
                     </td>
+                    <td>
+                      {canEdit ? (
+                        <select
+                          value={doc.estado_ejecucion || 'Pendiente'}
+                          onChange={e => handleEstadoChange(doc.id, e.target.value)}
+                          disabled={savingId === doc.id}
+                          style={{ padding: '4px 8px', borderRadius: 8, fontSize: 12, fontWeight: 500, cursor: canEdit ? 'pointer' : 'default', ...getEstadoEjecucionStyle(doc.estado_ejecucion || 'Pendiente') }}
+                        >
+                          {ESTADOS_EJECUCION.map(opt => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span style={{ padding: '2px 10px', borderRadius: 12, fontSize: 12, fontWeight: 500, ...getEstadoEjecucionStyle(doc.estado_ejecucion || 'Pendiente') }}>
+                          {doc.estado_ejecucion || 'Pendiente'}
+                        </span>
+                      )}
+                    </td>
                   </tr>
                 ))
               )}
             </tbody>
           </table>
         </div>
+        <p style={{ marginTop: 8, fontSize: 12, color: 'var(--text-secondary)' }}>Opciones: En tramite • Pendiente • En Ejecucion. El cambio se guarda automáticamente.</p>
       </div>
     </div>
   );

@@ -65,6 +65,7 @@ class PACDocument(Base):
     descripcion = Column(Text, nullable=True)
     costo_unitario = Column(Float, nullable=True)
     periodo = Column(String(50), nullable=True)
+    estado_ejecucion = Column(String(50), nullable=True, default="Pendiente")
     pdf_data = Column(Text, nullable=True)
 
 class PACCertificate(Base):

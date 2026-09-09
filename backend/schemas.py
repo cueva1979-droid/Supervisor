@@ -99,6 +99,7 @@ class PACDocumentResponse(BaseModel):
     descripcion: Optional[str] = None
     costo_unitario: Optional[float] = None
     periodo: Optional[str] = None
+    estado_ejecucion: Optional[str] = None
     class Config:
         from_attributes = True
 
@@ -111,6 +112,7 @@ class PACDocumentUpdate(BaseModel):
     descripcion: Optional[str] = None
     costo_unitario: Optional[float] = None
     periodo: Optional[str] = None
+    estado_ejecucion: Optional[str] = None
 
 class PACCertificateResponse(BaseModel):
     id: str
@@ -165,6 +167,7 @@ class PACAnalysisResponse(BaseModel):
     periodo: Optional[str] = None
     periodCategory: Optional[str] = None
     status: str = "unknown"
+    estado_ejecucion: Optional[str] = None
 
 # ==================== Auth Schemas ====================
 

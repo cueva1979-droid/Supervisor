@@ -56,6 +56,13 @@ def get_db():
 
 def init_db():
     Base.metadata.create_all(bind=engine)
+    # Ensure new PAC estado_ejecucion column exists (Postgres & SQLite)
+    with engine.connect() as conn:
+        try:
+            conn.execute(text("ALTER TABLE pac_documents ADD COLUMN estado_ejecucion VARCHAR(50) DEFAULT 'Pendiente'"))
+            conn.commit()
+        except Exception:
+            pass
     if not DB_IS_SQLITE:
         return
     with engine.connect() as conn:

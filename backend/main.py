@@ -928,6 +928,10 @@ def pac_update_document(doc_id: str, data: PACDocumentUpdate, user: User = Depen
         raise HTTPException(status_code=404, detail="Documento no encontrado")
 
     update_data = data.model_dump(exclude_unset=True)
+    if "estado_ejecucion" in update_data and update_data["estado_ejecucion"] is not None:
+        allowed = {"En tramite", "Pendiente", "En Ejecucion"}
+        if update_data["estado_ejecucion"] not in allowed:
+            raise HTTPException(status_code=400, detail=f"Estado no válido. Permitidos: {', '.join(allowed)}")
     for key, value in update_data.items():
         setattr(doc, key, value)
     db.commit()
@@ -991,6 +995,7 @@ def pac_period_analysis(user: User = Depends(require_module("pac")), db: Session
             "periodo": doc.periodo,
             "periodCategory": analysis["periodCategory"],
             "status": analysis["status"],
+            "estado_ejecucion": getattr(doc, "estado_ejecucion", None) or "Pendiente",
         })
     return result
 
