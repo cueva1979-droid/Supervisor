@@ -12,7 +12,7 @@ export default function HistoryPage() {
   const [editing, setEditing] = useState<RecordData | null>(null);
   const [editForm, setEditForm] = useState<any>({});
   const [saving, setSaving] = useState(false);
-  const [sortKey, setSortKey] = useState<string>('fecha_procesamiento');
+  const [sortKey, setSortKey] = useState<string>('numero_orden');
   const [sortAsc, setSortAsc] = useState(false);
 
   const loadRecords = (s?: string) => {
@@ -94,7 +94,15 @@ export default function HistoryPage() {
     if (!sortKey) return 0;
     const aVal = (a as any)[sortKey] ?? '';
     const bVal = (b as any)[sortKey] ?? '';
-    const cmp = typeof aVal === 'number' ? aVal - bVal : String(aVal).localeCompare(String(bVal));
+    let cmp: number;
+    if (sortKey === 'numero_orden') {
+      const aNum = parseInt(String(aVal).split('-').pop() || '0', 10);
+      const bNum = parseInt(String(bVal).split('-').pop() || '0', 10);
+      if (!isNaN(aNum) && !isNaN(bNum) && aNum !== bNum) cmp = aNum - bNum;
+      else cmp = String(aVal).localeCompare(String(bVal));
+    } else {
+      cmp = typeof aVal === 'number' ? aVal - bVal : String(aVal).localeCompare(String(bVal));
+    }
     return sortAsc ? cmp : -cmp;
   });
 
