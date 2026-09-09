@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { History, Search, Trash2, Eye, X, FileDown, ChevronUp, ChevronDown } from 'lucide-react';
-import { getRecords, deleteRecord, getRecord, getExportExcelUrl } from '../services/api';
+import { History, Search, Trash2, Eye, X, FileDown, ChevronUp, ChevronDown, Edit3, Save } from 'lucide-react';
+import { getRecords, deleteRecord, getRecord, updateRecord, getExportExcelUrl } from '../services/api';
 import type { RecordData } from '../types';
 import CanEdit from '../components/CanEdit';
 
@@ -9,6 +9,9 @@ export default function HistoryPage() {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [detail, setDetail] = useState<RecordData | null>(null);
+  const [editing, setEditing] = useState<RecordData | null>(null);
+  const [editForm, setEditForm] = useState<any>({});
+  const [saving, setSaving] = useState(false);
   const [sortKey, setSortKey] = useState<string>('fecha_procesamiento');
   const [sortAsc, setSortAsc] = useState(false);
 
@@ -42,6 +45,43 @@ export default function HistoryPage() {
       setDetail(data);
     } catch (err: any) {
       alert(err.message);
+    }
+  };
+
+  const handleEdit = async (id: number) => {
+    try {
+      const data = await getRecord(id) as RecordData;
+      setEditing(data);
+      setEditForm({
+        proveedor: data.proveedor || '',
+        ruc: data.ruc || '',
+        codigo_proceso: data.codigo_proceso || '',
+        numero_orden: data.numero_orden || '',
+        fecha: data.fecha || '',
+        objeto_contratacion: data.objeto_contratacion || '',
+        administrador: (data as any).administrador || '',
+        plazo_entrega: (data as any).plazo_entrega || '',
+        monto_total: data.monto_total ?? 0,
+        moneda: (data as any).moneda || 'PYG',
+        estado: data.estado || '',
+        observaciones: (data as any).observaciones || '',
+      });
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editing?.id) return;
+    setSaving(true);
+    try {
+      await updateRecord(editing.id, editForm);
+      setEditing(null);
+      loadRecords(search || undefined);
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -110,6 +150,7 @@ export default function HistoryPage() {
                     <div className="table-actions">
                       <button className="btn-icon" title="Ver detalle" onClick={() => handleViewDetail(r.id!)}><Eye size={15} /></button>
                       <CanEdit>
+                        <button className="btn-icon" title="Editar" onClick={() => handleEdit(r.id!)} style={{ color: 'var(--primary)' }}><Edit3 size={15} /></button>
                         <button className="btn-icon" title="Eliminar" onClick={() => handleDelete(r.id!)} style={{ color: 'var(--danger)' }}><Trash2 size={15} /></button>
                       </CanEdit>
                     </div>
@@ -174,6 +215,37 @@ export default function HistoryPage() {
             </div>
             <div className="modal-footer">
               <button className="btn btn-ghost" onClick={() => setDetail(null)}>Cerrar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editing && (
+        <div className="modal-overlay" onClick={() => !saving && setEditing(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 650 }}>
+            <div className="modal-header">
+              <h3><Edit3 size={18} style={{ verticalAlign: 'middle', marginRight: 8 }} />Editar Registro</h3>
+              <button className="btn-icon" onClick={() => setEditing(null)} disabled={saving}><X size={18} /></button>
+            </div>
+            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>Proveedor<input className="form-input" value={editForm.proveedor} onChange={e => setEditForm({ ...editForm, proveedor: e.target.value })} /></label>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>RUC<input className="form-input" value={editForm.ruc} onChange={e => setEditForm({ ...editForm, ruc: e.target.value })} /></label>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>Código Proceso<input className="form-input" value={editForm.codigo_proceso} onChange={e => setEditForm({ ...editForm, codigo_proceso: e.target.value })} /></label>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>N° Orden<input className="form-input" value={editForm.numero_orden} onChange={e => setEditForm({ ...editForm, numero_orden: e.target.value })} /></label>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>Fecha<input className="form-input" value={editForm.fecha} onChange={e => setEditForm({ ...editForm, fecha: e.target.value })} placeholder="DD/MM/YYYY" /></label>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>Monto Total<input className="form-input" type="number" value={editForm.monto_total} onChange={e => setEditForm({ ...editForm, monto_total: parseFloat(e.target.value) || 0 })} /></label>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>Administrador<input className="form-input" value={editForm.administrador} onChange={e => setEditForm({ ...editForm, administrador: e.target.value })} /></label>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>Plazo Entrega<input className="form-input" value={editForm.plazo_entrega} onChange={e => setEditForm({ ...editForm, plazo_entrega: e.target.value })} /></label>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>Estado<input className="form-input" value={editForm.estado} onChange={e => setEditForm({ ...editForm, estado: e.target.value })} /></label>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>Moneda<input className="form-input" value={editForm.moneda || 'PYG'} onChange={e => setEditForm({ ...editForm, moneda: e.target.value })} /></label>
+              </div>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>Objeto Contratación<textarea className="form-input" rows={3} value={editForm.objeto_contratacion} onChange={e => setEditForm({ ...editForm, objeto_contratacion: e.target.value })} /></label>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>Observaciones<textarea className="form-input" rows={2} value={editForm.observaciones} onChange={e => setEditForm({ ...editForm, observaciones: e.target.value })} /></label>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-ghost" onClick={() => setEditing(null)} disabled={saving}>Cancelar</button>
+              <button className="btn btn-primary" onClick={handleSaveEdit} disabled={saving} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Save size={16} />{saving ? 'Guardando...' : 'Guardar Cambios'}</button>
             </div>
           </div>
         </div>
