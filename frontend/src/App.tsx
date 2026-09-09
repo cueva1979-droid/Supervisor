@@ -276,7 +276,7 @@ function AppContent() {
         <div className="sidebar-footer">
           <button
             style={{ color: 'var(--text-sidebar)', gap: 10, padding: '10px 14px', width: '100%', border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', fontSize: 14, borderRadius: 6 }}
-            onClick={() => window.open('https://github.com/cueva1979-droid/Supervisor', '_blank')}
+            onClick={() => window.open('https://github.com/cueva1979-droid', '_blank')}
           >
             <Settings size={18} />
             Acerca de
