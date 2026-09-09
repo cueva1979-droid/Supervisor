@@ -18,9 +18,23 @@ function describeArc(cx: number, cy: number, r: number, startAngle: number, endA
 
 export default function Dashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
+  const [pacEjecucion, setPacEjecucion] = useState<{ tramite: number; pendiente: number; ejecucion: number } | null>(null);
 
   useEffect(() => {
     getDashboard().then((res) => setData(res as DashboardData));
+    // Cargar reporte PAC por estado de ejecución para Inicio
+    import('../services/pacApi').then(({ pacAPI }) =>
+      pacAPI.getPeriodAnalysis().then((rows: any[]) => {
+        const c = { tramite: 0, pendiente: 0, ejecucion: 0 };
+        rows.forEach((r: any) => {
+          const e = (r.estado_ejecucion || 'Pendiente').toLowerCase();
+          if (e.includes('tramite')) c.tramite++;
+          else if (e.includes('ejecucion')) c.ejecucion++;
+          else c.pendiente++;
+        });
+        setPacEjecucion(c);
+      }).catch(() => {})
+    );
   }, []);
 
   if (!data) return <div>Cargando...</div>;
@@ -157,24 +171,68 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="card">
-        <div className="card-header"><BarChart3 size={18} /> Montos Contratados</div>
-        {montos.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-secondary)' }}>Sin datos de montos</div>
-        ) : (
-          <div className="chart-container">
-            <div className="bar-chart">
-              {montos.slice(0, 10).map(([label, value]) => (
-                <div key={label} className="bar-item" title={`${label}: ${value.toLocaleString('es-PY')}`}>
-                  <div className="bar-value" style={{ fontSize: 11 }}>{value.toLocaleString('es-PY', { notation: 'compact', maximumFractionDigits: 1 })}</div>
-                  <div className="bar" style={{ height: `${(value / maxMontos) * 100}%`, background: 'linear-gradient(to top, #1e40af, #60a5fa)' }} />
-                  <div className="bar-label" style={{ fontSize: 10, maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label.length > 18 ? label.slice(0, 18) + '…' : label}</div>
-                </div>
-              ))}
+      <div className="grid-2">
+        <div className="card">
+          <div className="card-header"><BarChart3 size={18} /> Montos Contratados</div>
+          {montos.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-secondary)' }}>Sin datos de montos</div>
+          ) : (
+            <div className="chart-container">
+              <div className="bar-chart">
+                {montos.slice(0, 10).map(([label, value]) => (
+                  <div key={label} className="bar-item" title={`${label}: ${value.toLocaleString('es-PY')}`}>
+                    <div className="bar-value" style={{ fontSize: 11 }}>{value.toLocaleString('es-PY', { notation: 'compact', maximumFractionDigits: 1 })}</div>
+                    <div className="bar" style={{ height: `${(value / maxMontos) * 100}%`, background: 'linear-gradient(to top, #1e40af, #60a5fa)' }} />
+                    <div className="bar-label" style={{ fontSize: 10, maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label.length > 18 ? label.slice(0, 18) + '…' : label}</div>
+                  </div>
+                ))}
+              </div>
+              {montos.length > 10 && <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--text-secondary)', marginTop: 8 }}>Mostrando top 10 de {montos.length} proveedores</p>}
             </div>
-            {montos.length > 10 && <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--text-secondary)', marginTop: 8 }}>Mostrando top 10 de {montos.length} proveedores</p>}
-          </div>
-        )}
+          )}
+        </div>
+
+        <div className="card">
+          <div className="card-header"><PieIcon size={18} /> Reporte por Estado de Ejecución — Módulo PAC</div>
+          {!pacEjecucion ? (
+            <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-secondary)' }}>Cargando...</div>
+          ) : (() => {
+            const total = pacEjecucion.tramite + pacEjecucion.pendiente + pacEjecucion.ejecucion || 1;
+            const items: [string, number, string][] = [
+              ['En tramite', pacEjecucion.tramite, '#f59e0b'],
+              ['Pendiente', pacEjecucion.pendiente, '#ef4444'],
+              ['En Ejecucion', pacEjecucion.ejecucion, '#1e40af'],
+            ];
+            let acc = 0;
+            return (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap', justifyContent: 'center', padding: 12 }}>
+                <svg width={180} height={180} viewBox="0 0 200 200" style={{ flexShrink: 0 }}>
+                  {items.map(([label, value, color]) => {
+                    if (value === 0) return null;
+                    const start = (acc / total) * 360;
+                    acc += value;
+                    const end = (acc / total) * 360;
+                    return <path key={label} d={describeArc(100, 100, 75, start, end)} fill={color} stroke="white" strokeWidth={2} />;
+                  })}
+                  <circle cx={100} cy={100} r={42} fill="var(--bg, white)" />
+                  <text x={100} y={100} textAnchor="middle" dy={-4} fontSize={16} fontWeight={800} fill="var(--text)">{total}</text>
+                  <text x={100} y={100} textAnchor="middle" dy={10} fontSize={10} fill="var(--text-secondary)">PAC</text>
+                </svg>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, minWidth: 160 }}>
+                  {items.map(([label, value, color]) => (
+                    <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, padding: '6px 10px', borderRadius: 8, background: color === '#1e40af' ? '#dbeafe' : color === '#f59e0b' ? '#fef3c7' : '#fee2e2', border: `1px solid ${color}40` }}>
+                      <span style={{ width: 12, height: 12, borderRadius: 3, background: color, flexShrink: 0 }} />
+                      <span style={{ flex: 1, fontWeight: 600, color: color === '#1e40af' ? '#1e40af' : color === '#f59e0b' ? '#92400e' : '#991b1b' }}>{label}</span>
+                      <strong>{value}</strong>
+                      <span style={{ fontSize: 12, opacity: 0.8 }}>({((value / total) * 100).toFixed(1)}%)</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
+          <p style={{ textAlign: 'center', fontSize: 11, color: 'var(--text-secondary)', marginTop: 4 }}>Fuente: PAC → Análisis Periodos → Estado Ejecución</p>
+        </div>
       </div>
     </div>
   );
