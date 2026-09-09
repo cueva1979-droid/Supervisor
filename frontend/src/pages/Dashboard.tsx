@@ -1,10 +1,19 @@
 import { useEffect, useState } from 'react';
-import { LayoutDashboard, Users, FileText, DollarSign, BarChart3 } from 'lucide-react';
+import { LayoutDashboard, Users, FileText, DollarSign, PieChart as PieIcon } from 'lucide-react';
 import { getDashboard } from '../services/api';
 import type { DashboardData } from '../types';
 
-function maxValue(entries: [string, number][]): number {
-  return Math.max(...entries.map(([, v]) => v), 1);
+const PIE_COLORS = ['#1e40af', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#84cc16', '#f97316', '#ec4899', '#6366f1'];
+
+function polarToCartesian(cx: number, cy: number, r: number, angleDeg: number) {
+  const rad = (angleDeg - 90) * Math.PI / 180;
+  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+}
+function describeArc(cx: number, cy: number, r: number, startAngle: number, endAngle: number) {
+  const start = polarToCartesian(cx, cy, r, endAngle);
+  const end = polarToCartesian(cx, cy, r, startAngle);
+  const largeArc = endAngle - startAngle <= 180 ? '0' : '1';
+  return `M ${cx} ${cy} L ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} 0 ${end.x} ${end.y} Z`;
 }
 
 export default function Dashboard() {
@@ -17,7 +26,7 @@ export default function Dashboard() {
   if (!data) return <div>Cargando...</div>;
 
   const ordenes = Object.entries(data.ordenes_por_mes ?? {});
-  const maxOrdenes = maxValue(ordenes);
+  const totalOrdenesPie = ordenes.reduce((s, [, v]) => s + v, 0) || 1;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -56,18 +65,39 @@ export default function Dashboard() {
       </div>
 
       <div className="card">
-        <div className="card-header"><BarChart3 size={18} /> Órdenes por Mes</div>
-        <div className="chart-container">
-          <div className="bar-chart">
-            {ordenes.map(([label, value]) => (
-              <div key={label} className="bar-item">
-                <div className="bar-value">{value}</div>
-                <div className="bar" style={{ height: `${(value / maxOrdenes) * 100}%` }} />
-                <div className="bar-label">{label}</div>
-              </div>
-            ))}
+        <div className="card-header"><PieIcon size={18} /> Órdenes por Mes — Diagrama Circular</div>
+        {ordenes.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-secondary)' }}>Sin datos</div>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap', justifyContent: 'center', padding: 12 }}>
+            <svg width={200} height={200} viewBox="0 0 200 200" style={{ flexShrink: 0 }}>
+              {(() => {
+                let acc = 0;
+                return ordenes.map(([label, value], i) => {
+                  const start = (acc / totalOrdenesPie) * 360;
+                  acc += value;
+                  const end = (acc / totalOrdenesPie) * 360;
+                  const color = PIE_COLORS[i % PIE_COLORS.length];
+                  if (value === 0) return null;
+                  return <path key={label} d={describeArc(100, 100, 80, start, end)} fill={color} stroke="white" strokeWidth={2} />;
+                });
+              })()}
+              <circle cx={100} cy={100} r={45} fill="var(--bg, white)" />
+              <text x={100} y={100} textAnchor="middle" dy={-4} fontSize={18} fontWeight={800} fill="var(--text)">{totalOrdenesPie}</text>
+              <text x={100} y={100} textAnchor="middle" dy={12} fontSize={11} fill="var(--text-secondary)">Total</text>
+            </svg>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 180 }}>
+              {ordenes.map(([label, value], i) => (
+                <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+                  <span style={{ width: 14, height: 14, borderRadius: 3, background: PIE_COLORS[i % PIE_COLORS.length], flexShrink: 0 }} />
+                  <span style={{ flex: 1 }}>{label}</span>
+                  <strong>{value}</strong>
+                  <span style={{ color: 'var(--text-secondary)', fontSize: 12 }}>({((value / totalOrdenesPie) * 100).toFixed(1)}%)</span>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
