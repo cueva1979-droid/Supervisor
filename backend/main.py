@@ -822,6 +822,49 @@ def download_backup_endpoint(filename: str, user: User = Depends(require_role("a
     return FileResponse(candidate, media_type=media_type, filename=filename, headers={"Content-Disposition": f"attachment; filename=\"{filename}\""})
 
 
+@app.post("/backup/restore-upload")
+async def restore_backup_upload_endpoint(file: UploadFile = File(...), user: User = Depends(require_role("admin"))):
+    # Permite restablecer desde un backup guardado en la computadora (subida)
+    from services.backup_service import get_backup_dir, restore_backup
+    import os as _os, shutil
+    filename = file.filename or ""
+    filename = _os.path.basename(filename)
+    if not filename:
+        raise HTTPException(status_code=400, detail="Debe seleccionar un archivo")
+    # Validar extensión y allowlist (acepta backup_*.db/json o cualquier .db/.json para upload)
+    ext = filename.lower().split(".")[-1] if "." in filename else ""
+    if ext not in ("db", "json"):
+        raise HTTPException(status_code=400, detail="Formato no válido. Use .db o .json")
+    contents = await file.read()
+    MAX_UPLOAD = 50 * 1024 * 1024
+    if len(contents) > MAX_UPLOAD:
+        raise HTTPException(status_code=413, detail="Archivo demasiado grande. Máximo 50MB")
+    if len(contents) == 0:
+        raise HTTPException(status_code=400, detail="Archivo vacío")
+    # Magic check
+    if ext == "json" and not contents.lstrip().startswith(b"{"):
+        raise HTTPException(status_code=400, detail="JSON no válido")
+    if ext == "db" and not contents.startswith(b"SQLite format 3\x00"):
+        # permite igual por si es dump, pero advierte
+        pass
+    backup_dir = get_backup_dir()
+    # Guardar con nombre timestamp para trazabilidad
+    from datetime import datetime as _dt
+    ts = _dt.now().strftime("%Y%m%d_%H%M%S")
+    safe_name = f"backup_{ts}.{ext}"
+    dest = _os.path.join(backup_dir, safe_name)
+    with open(dest, "wb") as f:
+        f.write(contents)
+    try:
+        result = restore_backup(safe_name)
+        return {"status": "ok", "restored_from": safe_name, "uploaded_original": filename, **result}
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Archivo no encontrado tras subida")
+    except Exception:
+        logger.exception("Error al restaurar backup subido")
+        raise HTTPException(status_code=500, detail="No se pudo restaurar el backup subido. Verifique el formato.")
+
+
 @app.post("/backup/restore")
 def restore_backup_endpoint(data: dict, user: User = Depends(require_role("admin"))):
     from services.backup_service import restore_backup

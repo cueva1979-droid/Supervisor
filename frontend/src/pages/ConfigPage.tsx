@@ -25,6 +25,7 @@ export default function ConfigPage() {
   const [restoring, setRestoring] = useState(false);
   const [restoreFile, setRestoreFile] = useState('');
   const [restoreMsg, setRestoreMsg] = useState('');
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
 
   const loadBackupInfo = async () => {
     try {
@@ -83,6 +84,32 @@ export default function ConfigPage() {
       alert(err.message);
     }
     setRestoring(false);
+  };
+
+  const handleUploadRestore = async () => {
+    if (!uploadFile) return;
+    if (!confirm(`¿Restablecer la base de datos desde el archivo local "${uploadFile.name}"? Se sobrescribirá la BD actual.`)) return;
+    setRestoring(true);
+    try {
+      const form = new FormData();
+      form.append('file', uploadFile);
+      const res = await fetch(`${API_BASE}/backup/restore-upload`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: csrfHeaders('POST'),
+        body: form,
+      });
+      if (!res.ok) throw new Error((await res.json()).detail || 'Error');
+      const data = await res.json();
+      setRestoreMsg(`Restablecido desde archivo local: ${data.uploaded_original} → ${data.restored_from}`);
+      setShowRestore(false);
+      setUploadFile(null);
+      loadBackupInfo();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setRestoring(false);
+    }
   };
 
   const handleDownload = async (filename: string) => {
@@ -295,7 +322,7 @@ export default function ConfigPage() {
               <button className="btn-icon" onClick={() => setShowRestore(false)} disabled={restoring}><X size={18} /></button>
             </div>
             <div className="modal-body">
-              <p style={{ marginBottom: 12, fontSize: 14 }}>Seleccione un archivo de backup para restaurar:</p>
+              <p style={{ marginBottom: 12, fontSize: 14, fontWeight: 600 }}>Restaurar desde backups del servidor:</p>
               <select
                 className="form-input"
                 value={restoreFile}
@@ -309,15 +336,31 @@ export default function ConfigPage() {
                   </option>
                 ))}
               </select>
-              <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+              <button className="btn btn-primary btn-sm" onClick={handleRestore} disabled={restoring || !restoreFile} style={{ marginBottom: 16 }}>
+                {restoring ? 'Restaurando...' : 'Restaurar desde servidor'}
+              </button>
+
+              <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+                <p style={{ marginBottom: 8, fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}><FolderOpen size={16} /> Restablecer desde backup guardado en tu computadora:</p>
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>Selecciona un archivo <code>backup_*.db</code> o <code>backup_*.json</code> descargado previamente.</p>
+                <input
+                  type="file"
+                  accept=".db,.json"
+                  onChange={e => setUploadFile(e.target.files?.[0] || null)}
+                  disabled={restoring}
+                  style={{ width: '100%', marginBottom: 8 }}
+                />
+                {uploadFile && <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8 }}>Seleccionado: <strong>{uploadFile.name}</strong> ({formatSize(uploadFile.size)})</p>}
+                <button className="btn btn-secondary btn-sm" onClick={handleUploadRestore} disabled={restoring || !uploadFile} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <HardDrive size={14} /> Restablecer desde archivo local
+                </button>
+              </div>
+              <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 12 }}>
                 Se creará un backup automático de la base de datos actual antes de restaurar.
               </p>
             </div>
             <div className="modal-footer">
-              <button className="btn btn-ghost btn-sm" onClick={() => setShowRestore(false)} disabled={restoring}>Cancelar</button>
-              <button className="btn btn-primary btn-sm" onClick={handleRestore} disabled={restoring || !restoreFile}>
-                {restoring ? 'Restaurando...' : 'Restaurar'}
-              </button>
+              <button className="btn btn-ghost btn-sm" onClick={() => setShowRestore(false)} disabled={restoring}>Cerrar</button>
             </div>
           </div>
         </div>
