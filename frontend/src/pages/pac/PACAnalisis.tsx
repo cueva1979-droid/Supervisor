@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { CalendarDays, AlertTriangle, Clock, CheckCircle, Pencil, Save, Check } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { CalendarDays, AlertTriangle, Clock, CheckCircle, Pencil, Save, Check, BarChart3 } from 'lucide-react';
 import { pacAPI } from '../../services/pacApi';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -123,6 +123,16 @@ export default function PACAnalisis() {
     }
   };
 
+  const ejecucionSummary = useMemo(() => {
+    const c: Record<string, number> = { 'En tramite': 0, 'Pendiente': 0, 'En Ejecucion': 0 };
+    analysisData.forEach((d: any) => {
+      const e = d.estado_ejecucion || 'Pendiente';
+      if (e in c) c[e]++; else c['Pendiente']++;
+    });
+    const total = analysisData.length || 1;
+    return { counts: c, total: analysisData.length, pct: (n: number) => ((n / total) * 100).toFixed(1) };
+  }, [analysisData]);
+
   if (loading) return <div style={{ textAlign: 'center', padding: 40 }}>Cargando...</div>;
 
   return (
@@ -143,7 +153,7 @@ export default function PACAnalisis() {
             </div>
           ))}
         </div>
-        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <div style={{ width: 16, height: 16, borderRadius: 4, background: '#fbbf24' }} />
             <span style={{ fontSize: 13 }}>Período Actual</span>
@@ -156,6 +166,32 @@ export default function PACAnalisis() {
             <div style={{ width: 16, height: 16, borderRadius: 4, background: '#10b981' }} />
             <span style={{ fontSize: 13 }}>Período Futuro</span>
           </div>
+        </div>
+
+        <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+          <h4 style={{ fontSize: 14, fontWeight: 700, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <BarChart3 size={16} color="#2563eb" /> Reporte por Estado de Ejecución
+            <span style={{ fontWeight: 400, fontSize: 12, color: 'var(--text-secondary)' }}>({ejecucionSummary.total} documentos)</span>
+          </h4>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12 }}>
+            {ESTADOS_EJECUCION.map(estado => {
+              const count = ejecucionSummary.counts[estado] || 0;
+              const pct = ejecucionSummary.pct(count);
+              return (
+                <div key={estado} style={{ padding: 12, borderRadius: 8, textAlign: 'center', ...getEstadoEjecucionStyle(estado) }}>
+                  <div style={{ fontSize: 24, fontWeight: 800 }}>{count}</div>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>{estado}</div>
+                  <div style={{ fontSize: 11, opacity: 0.8 }}>{pct}%</div>
+                  <div style={{ marginTop: 6, height: 4, background: 'rgba(0,0,0,0.1)', borderRadius: 2, overflow: 'hidden' }}>
+                    <div style={{ width: `${pct}%`, height: '100%', background: 'currentColor', opacity: 0.6 }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <p style={{ marginTop: 8, fontSize: 11, color: 'var(--text-secondary)' }}>
+            Actualizado al cambiar el <em>Estado Ejecución</em> en la tabla inferior (requiere <strong>Guardar</strong>).
+          </p>
         </div>
       </div>
 
