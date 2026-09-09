@@ -120,12 +120,31 @@ export default function HistoryPage() {
             <FileDown size={14} /> Exportar Excel
           </a>
         </div>
-        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-          <div className="search-bar" style={{ maxWidth: 400, flex: 1 }}>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+          <div className="search-bar" style={{ maxWidth: 400, flex: 1, minWidth: 220 }}>
             <Search size={16} />
             <input placeholder="Buscar por proveedor, RUC, orden o proceso..." value={search} onChange={(e) => setSearch(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSearch()} />
           </div>
           <button className="btn btn-primary btn-sm" onClick={handleSearch}><Search size={14} /> Buscar</button>
+          <div style={{ display: 'flex', gap: 6, marginLeft: 'auto', alignItems: 'center' }}>
+            <span style={{ fontSize: 12, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>Ordenar N° Orden:</span>
+            <button
+              className={`btn btn-sm ${sortKey === 'numero_orden' && sortAsc ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => { setSortKey('numero_orden'); setSortAsc(true); }}
+              title="Menor a mayor (IC-...-0001 → 0058)"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+            >
+              <ChevronUp size={14} /> Ascendente
+            </button>
+            <button
+              className={`btn btn-sm ${sortKey === 'numero_orden' && !sortAsc ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => { setSortKey('numero_orden'); setSortAsc(false); }}
+              title="Mayor a menor (IC-...-0058 → 0001)"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+            >
+              <ChevronDown size={14} /> Descendente
+            </button>
+          </div>
         </div>
         {loading ? <div>Cargando...</div> : (
           <table>
