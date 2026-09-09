@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { LayoutDashboard, Users, FileText, DollarSign, TrendingUp, BarChart3 } from 'lucide-react';
+import { LayoutDashboard, Users, FileText, DollarSign, BarChart3 } from 'lucide-react';
 import { getDashboard } from '../services/api';
 import type { DashboardData } from '../types';
 
@@ -17,9 +17,7 @@ export default function Dashboard() {
   if (!data) return <div>Cargando...</div>;
 
   const ordenes = Object.entries(data.ordenes_por_mes ?? {});
-  const montos = Object.entries(data.montos_por_proveedor ?? {});
   const maxOrdenes = maxValue(ordenes);
-  const maxMontos = maxValue(montos);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -57,33 +55,17 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="grid-2">
-        <div className="card">
-          <div className="card-header"><BarChart3 size={18} /> Órdenes por Mes</div>
-          <div className="chart-container">
-            <div className="bar-chart">
-              {ordenes.map(([label, value]) => (
-                <div key={label} className="bar-item">
-                  <div className="bar-value">{value}</div>
-                  <div className="bar" style={{ height: `${(value / maxOrdenes) * 100}%` }} />
-                  <div className="bar-label">{label}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-        <div className="card">
-          <div className="card-header"><TrendingUp size={18} /> Montos por Proveedor</div>
-          <div className="chart-container">
-            <div className="bar-chart">
-              {montos.map(([label, value]) => (
-                <div key={label} className="bar-item">
-                  <div className="bar-value">{value.toLocaleString('es-PY', { minimumFractionDigits: 0 })}</div>
-                  <div className="bar" style={{ height: `${(value / maxMontos) * 100}%` }} />
-                  <div className="bar-label">{label}</div>
-                </div>
-              ))}
-            </div>
+      <div className="card">
+        <div className="card-header"><BarChart3 size={18} /> Órdenes por Mes</div>
+        <div className="chart-container">
+          <div className="bar-chart">
+            {ordenes.map(([label, value]) => (
+              <div key={label} className="bar-item">
+                <div className="bar-value">{value}</div>
+                <div className="bar" style={{ height: `${(value / maxOrdenes) * 100}%` }} />
+                <div className="bar-label">{label}</div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
