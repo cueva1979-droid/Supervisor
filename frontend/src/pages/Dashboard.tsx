@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { LayoutDashboard, Users, FileText, DollarSign, PieChart as PieIcon } from 'lucide-react';
+import { LayoutDashboard, Users, FileText, DollarSign, PieChart as PieIcon, BarChart3 } from 'lucide-react';
 import { getDashboard } from '../services/api';
 import type { DashboardData } from '../types';
 
@@ -27,6 +27,8 @@ export default function Dashboard() {
 
   const ordenes = Object.entries(data.ordenes_por_mes ?? {});
   const totalOrdenesPie = ordenes.reduce((s, [, v]) => s + v, 0) || 1;
+  const montos = Object.entries(data.montos_por_proveedor ?? {});
+  const maxMontos = Math.max(...montos.map(([, v]) => v), 1);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -96,6 +98,26 @@ export default function Dashboard() {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+      </div>
+
+      <div className="card">
+        <div className="card-header"><BarChart3 size={18} /> Montos Contratados</div>
+        {montos.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-secondary)' }}>Sin datos de montos</div>
+        ) : (
+          <div className="chart-container">
+            <div className="bar-chart">
+              {montos.slice(0, 10).map(([label, value]) => (
+                <div key={label} className="bar-item" title={`${label}: ${value.toLocaleString('es-PY')}`}>
+                  <div className="bar-value" style={{ fontSize: 11 }}>{value.toLocaleString('es-PY', { notation: 'compact', maximumFractionDigits: 1 })}</div>
+                  <div className="bar" style={{ height: `${(value / maxMontos) * 100}%`, background: 'linear-gradient(to top, #1e40af, #60a5fa)' }} />
+                  <div className="bar-label" style={{ fontSize: 10, maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label.length > 18 ? label.slice(0, 18) + '…' : label}</div>
+                </div>
+              ))}
+            </div>
+            {montos.length > 10 && <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--text-secondary)', marginTop: 8 }}>Mostrando top 10 de {montos.length} proveedores</p>}
           </div>
         )}
       </div>
