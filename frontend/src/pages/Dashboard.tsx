@@ -20,10 +20,12 @@ export default function Dashboard() {
   const montos = Object.entries(data.montos_por_proveedor ?? {});
   const maxOrdenes = maxValue(ordenes);
   const maxMontos = maxValue(montos);
-  const ultimos = (data.ultimos_registros ?? []).slice(-5).reverse();
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ textAlign: 'center', padding: '12px 16px', background: 'var(--primary, #1e40af)', color: 'white', borderRadius: 12, letterSpacing: '0.04em' }}>
+        <h1 style={{ margin: 0, fontSize: 18, fontWeight: 800, lineHeight: 1.2 }}>SISTEMA ADMINISTRATIVO DE PROCESOS DE CONTRATACIÓN</h1>
+      </div>
       <div className="grid-4">
         <div className="stat-card">
           <div className="stat-icon blue"><FileText size={22} /></div>
@@ -84,32 +86,6 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
-      </div>
-
-      <div className="card">
-        <div className="card-header"><FileText size={18} /> Últimos Registros</div>
-        <table>
-          <thead>
-            <tr>
-              <th>Archivo</th>
-              <th>Proveedor</th>
-              <th>Fecha</th>
-              <th>Monto Total</th>
-              <th>Estado</th>
-            </tr>
-          </thead>
-          <tbody>
-            {ultimos.map((r, i) => (
-              <tr key={r.id ?? i}>
-                <td>{r.filename ?? '-'}</td>
-                <td>{r.proveedor ?? '-'}</td>
-                <td>{r.fecha ?? '-'}</td>
-                <td>{(r.monto_total ?? 0).toLocaleString('es-PY', { minimumFractionDigits: 2 })}</td>
-                <td>{r.estado ?? '-'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
       </div>
     </div>
   );
