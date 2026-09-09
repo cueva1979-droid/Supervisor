@@ -247,6 +247,6 @@ def create_default_admin(db: Session) -> User:
     if os.getenv("DEFAULT_ADMIN_PASSWORD"):
         print("[security] Administrador 'admin' creado con DEFAULT_ADMIN_PASSWORD.")
     else:
-        print("[security] ATENCIÓN: administrador 'admin' creado con contraseña temporal:", password)
+        print("[security] ATENCIÓN: administrador 'admin' creado con contraseña temporal (ver variable de entorno).")
         print("[security] Cámbiela lo antes posible desde Configuración -> Usuarios.")
     return admin

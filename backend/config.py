@@ -77,7 +77,7 @@ class Settings:
     COOKIE_CSRF_NAME: str = "sp_csrf"
     COOKIE_HTTPONLY: bool = True
     COOKIE_SECURE: bool = os.getenv("COOKIE_SECURE", "true").lower() in ("1", "true", "yes")
-    COOKIE_SAMESITE: str = "none"
+    COOKIE_SAMESITE: str = "lax"
     COOKIE_PATH: str = "/"
 
     RATE_LIMIT_PER_MINUTE: int = 60

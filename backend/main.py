@@ -85,7 +85,7 @@ SECURITY_HEADERS = [
 ]
 
 UNSAFE_METHODS = (b"POST", b"PUT", b"PATCH", b"DELETE")
-CSRF_EXEMPT_PATHS = ("/auth/login", "/auth/refresh", "/auth/logout", "/health", "/backup", "/backup/auto-toggle", "/backup/restore")
+CSRF_EXEMPT_PATHS = ("/auth/login", "/auth/refresh", "/auth/logout", "/health")
 
 def _origin_allowed(origin: bytes) -> bool:
     try:
@@ -809,6 +809,17 @@ def restore_backup_endpoint(data: dict, user: User = Depends(require_role("admin
     filename = data.get("filename", "")
     if not filename:
         raise HTTPException(status_code=400, detail="Debe especificar un archivo de backup")
+    # H-02: sanitize filename - allowlist + block traversal
+    if "/" in filename or "\\" in filename or ".." in filename or ":" in filename:
+        raise HTTPException(status_code=400, detail="Nombre de archivo no válido")
+    if not re.match(r"^backup_\d{8}_\d{6}\.(db|json)$", filename):
+        raise HTTPException(status_code=400, detail="Formato de backup no válido")
+    # Verify resolved path stays inside backup_dir
+    from services.backup_service import get_backup_dir
+    import os as _os
+    candidate = _os.path.abspath(_os.path.join(get_backup_dir(), filename))
+    if not candidate.startswith(_os.path.abspath(get_backup_dir())):
+        raise HTTPException(status_code=400, detail="Ruta no válida")
     try:
         result = restore_backup(filename)
         return result
@@ -842,9 +853,26 @@ async def pac_upload_document(file: UploadFile = File(...), user: User = Depends
         raise HTTPException(status_code=400, detail="No se envió archivo")
 
     filename = file.filename or "unknown"
+    # Sanitize filename - block directory traversal
+    filename = os.path.basename(filename)
+    if "/" in filename or "\\" in filename or ".." in filename:
+        raise HTTPException(status_code=400, detail="Nombre de archivo no válido")
     ext = filename.lower().split('.')[-1] if '.' in filename else ""
 
     contents = await file.read()
+    # H-03: limit upload size 10MB
+    MAX_UPLOAD = 10 * 1024 * 1024
+    if len(contents) > MAX_UPLOAD:
+        raise HTTPException(status_code=413, detail="Archivo demasiado grande. Máximo 10MB")
+    if len(contents) == 0:
+        raise HTTPException(status_code=400, detail="Archivo vacío")
+    # H-04: validate magic bytes
+    if ext in ('xlsx', 'xls'):
+        if not contents.startswith(b'PK'):
+            raise HTTPException(status_code=400, detail="Archivo Excel no válido (magic bytes)")
+    elif ext == 'pdf':
+        if not contents.startswith(b'%PDF'):
+            raise HTTPException(status_code=400, detail="Archivo PDF no válido (magic bytes)")
 
     try:
         if ext in ('xlsx', 'xls'):
@@ -868,8 +896,12 @@ async def pac_upload_document(file: UploadFile = File(...), user: User = Depends
     inserted_count = 0
     pdf_b64 = None
     if ext == 'pdf':
-        import base64
-        pdf_b64 = base64.b64encode(contents).decode('utf-8')
+        # Avoid storing huge PDFs in DB (DoS) - limit to 2MB
+        if len(contents) <= 2 * 1024 * 1024:
+            import base64
+            pdf_b64 = base64.b64encode(contents).decode('utf-8')
+        else:
+            pdf_b64 = None
 
     for doc_data in documents:
         partida = doc_data.get("partida_presupuestaria", "")
@@ -1071,10 +1103,11 @@ def pac_generate_certificate(doc_id: str, user: User = Depends(require_role("adm
     if not docx_bytes:
         raise HTTPException(status_code=500, detail="Error al generar el certificado")
 
+    safe_cpc = re.sub(r'[^a-zA-Z0-9_-]', '_', str(doc.cpc or 'SN'))[:40]
     return FastResponse(
         content=docx_bytes,
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        headers={"Content-Disposition": f"attachment; filename=Certificado_PAC_{doc.cpc}.docx"}
+        headers={"Content-Disposition": f"attachment; filename=Certificado_PAC_{safe_cpc}.docx"}
     )
 
 
@@ -1105,10 +1138,11 @@ def pac_generate_custom_certificate(data: dict, user: User = Depends(require_rol
         db.add(cert)
         db.commit()
 
+        safe_nro = re.sub(r'[^a-zA-Z0-9_-]', '_', str(cert_nro or 'SN'))[:40]
         return FastResponse(
             content=docx_bytes,
             media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            headers={"Content-Disposition": f"attachment; filename=Certificacion_PAC_{cert_nro}.docx"}
+            headers={"Content-Disposition": f"attachment; filename=Certificacion_PAC_{safe_nro}.docx"}
         )
     except HTTPException:
         raise
@@ -1447,9 +1481,16 @@ if os.path.isdir(_SPA_DIST):
 
     @app.get("/{full_path:path}", include_in_schema=False)
     def _spa_fallback(full_path: str):
-        candidate = os.path.join(_SPA_DIST, full_path)
-        if full_path and os.path.isfile(candidate):
-            return _FileResponse(candidate)
+        from pathlib import Path
+        base = Path(_SPA_DIST).resolve()
+        target = (base / full_path).resolve()
+        # Block traversal outside dist
+        try:
+            target.relative_to(base)
+        except ValueError:
+            return _FileResponse(os.path.join(_SPA_DIST, "index.html"))
+        if full_path and target.is_file():
+            return _FileResponse(str(target))
         return _FileResponse(os.path.join(_SPA_DIST, "index.html"))
 
 

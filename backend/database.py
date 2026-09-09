@@ -29,7 +29,7 @@ if DATABASE_URL:
     if DATABASE_URL.startswith("postgres://"):
         DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
     if not DATABASE_URL.startswith("postgresql://"):
-        print(f"[db] DATABASE_URL no comienza con postgresql://. Valor: {DATABASE_URL[:30]}...")
+        print("[db] DATABASE_URL no comienza con postgresql://")
         _fallback_sqlite()
     else:
         try:
@@ -39,7 +39,7 @@ if DATABASE_URL:
             DB_IS_SQLITE = False
             print("[db] Conectado a PostgreSQL")
         except Exception as e:
-            print(f"[db] ERROR: No se pudo conectar a PostgreSQL: {e}")
+            print("[db] ERROR: No se pudo conectar a PostgreSQL")
             _fallback_sqlite()
 else:
     _fallback_sqlite()
@@ -99,5 +99,5 @@ def create_default_admin(db: Session):
     if os.getenv("DEFAULT_ADMIN_PASSWORD"):
         print("[security] Administrador 'admin' creado con DEFAULT_ADMIN_PASSWORD.")
     else:
-        print("[security] ATENCIÓN: administrador 'admin' creado con contraseña temporal:", password)
+        print("[security] ATENCIÓN: administrador 'admin' creado con contraseña temporal (no mostrada en logs).")
         print("[security] Cámbiela lo antes posible desde Configuración -> Usuarios.")
