@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Settings, Server, Database, HardDrive, Globe, Shield, AlertTriangle, X, RotateCcw, Save, Clock, FolderOpen, Play, Square, Undo2 } from 'lucide-react';
+import { Settings, Server, Database, HardDrive, Globe, Shield, AlertTriangle, X, RotateCcw, Save, Clock, FolderOpen, Play, Square, Undo2, Download } from 'lucide-react';
 import { getCsrfToken } from '../services/auth';
 import { API_BASE } from '../services/config';
 
@@ -83,6 +83,27 @@ export default function ConfigPage() {
       alert(err.message);
     }
     setRestoring(false);
+  };
+
+  const handleDownload = async (filename: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/backup/download/${encodeURIComponent(filename)}`, {
+        credentials: 'include',
+        headers: authHeaders(),
+      });
+      if (!res.ok) throw new Error((await res.json()).detail || 'Error al descargar');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      alert(err.message || 'No se pudo descargar el backup');
+    }
   };
 
   const handleReset = async () => {
@@ -203,6 +224,7 @@ export default function ConfigPage() {
                   <th style={{ padding: '6px 8px', textAlign: 'left' }}>Archivo</th>
                   <th style={{ padding: '6px 8px', textAlign: 'left' }}>Fecha</th>
                   <th style={{ padding: '6px 8px', textAlign: 'right' }}>Tamaño</th>
+                  <th style={{ padding: '6px 8px', textAlign: 'center' }}>Acción</th>
                 </tr>
               </thead>
               <tbody>
@@ -211,6 +233,16 @@ export default function ConfigPage() {
                     <td style={{ padding: '4px 8px', fontSize: 12 }}>{f.filename}</td>
                     <td style={{ padding: '4px 8px', fontSize: 12 }}>{formatDate(f.timestamp)}</td>
                     <td style={{ padding: '4px 8px', textAlign: 'right', fontSize: 12 }}>{formatSize(f.size_bytes)}</td>
+                    <td style={{ padding: '4px 8px', textAlign: 'center' }}>
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => handleDownload(f.filename)}
+                        title="Descargar a tu computadora"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', fontSize: 12 }}
+                      >
+                        <Download size={14} /> Descargar
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>

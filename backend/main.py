@@ -803,6 +803,25 @@ def toggle_auto_backup(data: dict, user: User = Depends(require_role("admin"))):
     return set_auto_backup(enabled)
 
 
+@app.get("/backup/download/{filename}")
+def download_backup_endpoint(filename: str, user: User = Depends(require_role("admin"))):
+    # Sanitizar y validar filename (allowlist + block traversal)
+    if "/" in filename or "\\" in filename or ".." in filename or ":" in filename:
+        raise HTTPException(status_code=400, detail="Nombre de archivo no válido")
+    if not re.match(r"^backup_\d{8}_\d{6}\.(db|json)$", filename):
+        raise HTTPException(status_code=400, detail="Formato de backup no válido")
+    from services.backup_service import get_backup_dir
+    import os as _os
+    backup_dir = get_backup_dir()
+    candidate = _os.path.abspath(_os.path.join(backup_dir, filename))
+    if not candidate.startswith(_os.path.abspath(backup_dir)):
+        raise HTTPException(status_code=400, detail="Ruta no válida")
+    if not _os.path.isfile(candidate):
+        raise HTTPException(status_code=404, detail="Archivo no encontrado")
+    media_type = "application/json" if filename.endswith(".json") else "application/octet-stream"
+    return FileResponse(candidate, media_type=media_type, filename=filename, headers={"Content-Disposition": f"attachment; filename=\"{filename}\""})
+
+
 @app.post("/backup/restore")
 def restore_backup_endpoint(data: dict, user: User = Depends(require_role("admin"))):
     from services.backup_service import restore_backup
