@@ -38,9 +38,9 @@ from schemas import (
     PACAnalysisResponse,
     LoginRequest, LoginResponse, RefreshRequest,
     UserCreate, UserUpdate, UserResponse,
-    AuditLogResponse, ChangePasswordRequest,
+    AuditLogResponse, ChangePasswordRequest, BulkDeleteRequest,
 )
-from services.extraction_service import upload_and_process, delete_record, get_records
+from services.extraction_service import upload_and_process, delete_record, delete_records_bulk, get_records
 from services.security import sanitize_filename, sanitize_excel
 from services.provider_service import (
     get_providers, get_provider, create_provider,
@@ -428,6 +428,18 @@ def update_record(record_id: int, data: RecordUpdate, user: User = Depends(requi
     db.commit()
     db.refresh(record)
     return RecordResponse.model_validate(record).model_dump()
+
+@app.post("/records/bulk-delete")
+def bulk_delete_records(data: BulkDeleteRequest, user: User = Depends(require_role("admin", "operator")), db: Session = Depends(get_db)):
+    if not data.ids:
+        raise HTTPException(status_code=400, detail="Debe seleccionar al menos un registro")
+    # sanitizar: limite 200 por operación para evitar abuso
+    if len(data.ids) > 200:
+        raise HTTPException(status_code=400, detail="Máximo 200 registros por operación")
+    result = delete_records_bulk(data.ids, db)
+    log_audit(user.id, "BULK_DELETE", "records", details=f"Eliminados {result['deleted']} de {result['requested']} solicitados. No encontrados: {result['not_found']}", db=db)
+    return {"status": "ok", "deleted": result["deleted"], "not_found": result["not_found"], "message": f"Se eliminaron {result['deleted']} registro(s)"}
+
 
 @app.delete("/records/{record_id}")
 def remove_record(record_id: int, user: User = Depends(require_role("admin", "operator")), db: Session = Depends(get_db)):

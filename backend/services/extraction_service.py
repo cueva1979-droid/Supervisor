@@ -132,6 +132,28 @@ def delete_record(record_id: int, db: Session) -> bool:
     db.commit()
     return True
 
+
+def delete_records_bulk(record_ids: List[int], db: Session) -> dict:
+    if not record_ids:
+        return {"deleted": 0, "not_found": []}
+    # deduplicate
+    unique_ids = list(set(record_ids))
+    records = db.query(Record).filter(Record.id.in_(unique_ids)).all()
+    found_ids = {r.id for r in records}
+    not_found = [i for i in unique_ids if i not in found_ids]
+    deleted = 0
+    for record in records:
+        try:
+            filepath = os.path.join(UPLOAD_DIR, record.filename)
+            if os.path.exists(filepath):
+                os.remove(filepath)
+        except Exception:
+            pass
+        db.delete(record)
+        deleted += 1
+    db.commit()
+    return {"deleted": deleted, "not_found": not_found, "requested": len(unique_ids)}
+
 def get_records(db: Session, search: Optional[str] = None) -> List[Record]:
     query = db.query(Record)
     if search:

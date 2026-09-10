@@ -66,6 +66,10 @@ export async function deleteRecord(id: number) {
   return request<any>(`/records/${id}`, { method: 'DELETE' });
 }
 
+export async function deleteRecordsBulk(ids: number[]) {
+  return request<any>(`/records/bulk-delete`, { method: 'POST', body: JSON.stringify({ ids }) });
+}
+
 export async function getProviders(search?: string) {
   const params = search ? `?search=${encodeURIComponent(search)}` : '';
   return request<any[]>(`/providers${params}`);

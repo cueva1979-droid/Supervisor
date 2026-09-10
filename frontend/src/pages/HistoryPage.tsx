@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { History, Search, Trash2, Eye, X, FileDown, ChevronUp, ChevronDown, Edit3, Save } from 'lucide-react';
-import { getRecords, deleteRecord, getRecord, updateRecord, getExportExcelUrl } from '../services/api';
+import { getRecords, deleteRecord, deleteRecordsBulk, getRecord, updateRecord, getExportExcelUrl } from '../services/api';
 import type { RecordData } from '../types';
 import CanEdit from '../components/CanEdit';
 
@@ -14,11 +14,14 @@ export default function HistoryPage() {
   const [saving, setSaving] = useState(false);
   const [sortKey, setSortKey] = useState<string>('numero_orden');
   const [sortAsc, setSortAsc] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   const loadRecords = (s?: string) => {
     setLoading(true);
     getRecords(s || undefined).then((res) => {
       setRecords(res as RecordData[]);
+      setSelectedIds(new Set());
       setLoading(false);
     });
   };
@@ -33,10 +36,19 @@ export default function HistoryPage() {
     if (!confirm('¿Eliminar este registro permanentemente?')) return;
     try {
       await deleteRecord(id);
+      setSelectedIds((prev) => { const next = new Set(prev); next.delete(id); return next; });
       loadRecords(search || undefined);
     } catch (err: any) {
       alert(err.message);
     }
+  };
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
   };
 
   const handleViewDetail = async (id: number) => {
@@ -111,6 +123,33 @@ export default function HistoryPage() {
     return sortAsc ? <ChevronUp size={12} style={{ display: 'inline', marginLeft: 2 }} /> : <ChevronDown size={12} style={{ display: 'inline', marginLeft: 2 }} />;
   };
 
+  const toggleSelectAll = () => {
+    if (selectedIds.size === sorted.length && sorted.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(sorted.map((r) => r.id!).filter(Boolean)));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`¿Eliminar ${selectedIds.size} orden(es) de compra seleccionada(s) permanentemente? Esta acción no se puede deshacer.`)) return;
+    setBulkDeleting(true);
+    try {
+      const res = await deleteRecordsBulk(Array.from(selectedIds));
+      alert(res.message || `Se eliminaron ${res.deleted} registro(s)`);
+      setSelectedIds(new Set());
+      loadRecords(search || undefined);
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
+  const allSelected = sorted.length > 0 && selectedIds.size === sorted.length;
+  const someSelected = selectedIds.size > 0 && selectedIds.size < sorted.length;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div className="card">
@@ -146,10 +185,47 @@ export default function HistoryPage() {
             </button>
           </div>
         </div>
+        {/* Barra de selección múltiple */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap', minHeight: 32 }}>
+          <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+            {selectedIds.size > 0 ? `${selectedIds.size} de ${sorted.length} seleccionada(s)` : `${sorted.length} orden(es)`}
+          </span>
+          {selectedIds.size > 0 && (
+            <>
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={() => setSelectedIds(new Set())}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+              >
+                <X size={14} /> Limpiar selección
+              </button>
+              <CanEdit>
+                <button
+                  className="btn btn-danger btn-sm"
+                  onClick={handleBulkDelete}
+                  disabled={bulkDeleting}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                >
+                  <Trash2 size={14} /> {bulkDeleting ? 'Eliminando...' : `Eliminar seleccionadas (${selectedIds.size})`}
+                </button>
+              </CanEdit>
+            </>
+          )}
+        </div>
         {loading ? <div>Cargando...</div> : (
           <table>
             <thead>
               <tr>
+                <th style={{ width: 38, textAlign: 'center' }}>
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    ref={(el) => { if (el) el.indeterminate = someSelected; }}
+                    onChange={toggleSelectAll}
+                    title={allSelected ? 'Deseleccionar todo' : 'Seleccionar todo'}
+                    style={{ cursor: 'pointer' }}
+                  />
+                </th>
                 <th onClick={() => handleSort('filename')}>Archivo <SortIcon k="filename" /></th>
                 <th onClick={() => handleSort('proveedor')}>Proveedor <SortIcon k="proveedor" /></th>
                 <th onClick={() => handleSort('ruc')}>RUC <SortIcon k="ruc" /></th>
@@ -162,10 +238,18 @@ export default function HistoryPage() {
             </thead>
             <tbody>
               {sorted.length === 0 && (
-                <tr><td colSpan={8} style={{ textAlign: 'center', padding: 24 }}>No hay registros</td></tr>
+                <tr><td colSpan={9} style={{ textAlign: 'center', padding: 24 }}>No hay registros</td></tr>
               )}
               {sorted.map((r) => (
-                <tr key={r.id}>
+                <tr key={r.id} style={{ background: selectedIds.has(r.id!) ? 'var(--bg-secondary, #f0f4ff)' : undefined }}>
+                  <td style={{ textAlign: 'center' }}>
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(r.id!)}
+                      onChange={() => toggleSelect(r.id!)}
+                      style={{ cursor: 'pointer' }}
+                    />
+                  </td>
                   <td style={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.filename}</td>
                   <td><strong>{r.proveedor || '-'}</strong></td>
                   <td>{r.ruc || '-'}</td>

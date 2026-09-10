@@ -237,3 +237,7 @@ class CAMExtractionResponse(BaseModel):
 class ChangePasswordRequest(BaseModel):
     current_password: str
     new_password: str
+
+
+class BulkDeleteRequest(BaseModel):
+    ids: List[int] = Field(..., description="Lista de IDs a eliminar")
