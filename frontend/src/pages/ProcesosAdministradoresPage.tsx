@@ -106,7 +106,12 @@ export default function ProcesosAdministradoresPage() {
 
   const getProcesoLink = (codigo: string) => {
     if (!codigo) return '';
-    return `https://www.compraspublicas.gob.ec/ProcesoContratacion/compras/PC/buscarProceso.cpe?codigo=${encodeURIComponent(codigo)}`;
+    // Formato solicitado: https://www.compraspublicas.gob.ec/ProcesoContratacion/compras/PC/informacionProcesoContratacion2.cpe?idSoliCompra=...
+    // El PDF solo trae código (ej. RE-CEP-GADCCC-2026-001); el idSoliCompra del ejemplo (hyoblQeLSGRW...) es el id interno SERCOP.
+    // Como no disponemos del id, generamos link directo por código usando el mismo endpoint informacionProcesoContratacion2
+    // (SERCOP resuelve por código si se pasa como id; si no, fallback a buscarProceso).
+    // Si en el futuro se extrae idSoliCompra del PDF/HTML, reemplazar aquí.
+    return `https://www.compraspublicas.gob.ec/ProcesoContratacion/compras/PC/informacionProcesoContratacion2.cpe?idSoliCompra=${encodeURIComponent(codigo)}`;
   };
 
   const copyLink = async (codigo: string, e?: React.MouseEvent) => {
