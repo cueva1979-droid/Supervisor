@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Users, Search, ChevronDown, ChevronRight, FileText, Edit3, Trash2, Save, X, AlertCircle, FileSpreadsheet } from 'lucide-react';
+import { Users, Search, ChevronDown, ChevronRight, FileText, Edit3, Trash2, Save, X, AlertCircle, FileSpreadsheet, Link as LinkIcon, Copy } from 'lucide-react';
 import { getProcesosAdministradores, exportProcesosExcelByAdmin } from '../services/api';
 import { getCsrfToken } from '../services/auth';
 import CanEdit from '../components/CanEdit';
@@ -104,6 +104,31 @@ export default function ProcesosAdministradoresPage() {
     }
   };
 
+  const getProcesoLink = (codigo: string) => {
+    if (!codigo) return '';
+    return `https://www.compraspublicas.gob.ec/ProcesoContratacion/compras/PC/buscarProceso.cpe?codigo=${encodeURIComponent(codigo)}`;
+  };
+
+  const copyLink = async (codigo: string) => {
+    const url = getProcesoLink(codigo);
+    if (!url) return;
+    try {
+      await navigator.clipboard.writeText(url);
+      setSuccess(`Link copiado: ${url}`);
+      setTimeout(() => setSuccess(''), 2500);
+    } catch {
+      // fallback
+      const ta = document.createElement('textarea');
+      ta.value = url;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      setSuccess(`Link copiado: ${url}`);
+      setTimeout(() => setSuccess(''), 2500);
+    }
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div style={{ marginBottom: 8 }}>
@@ -197,7 +222,7 @@ export default function ProcesosAdministradoresPage() {
                               <th style={{ padding: '8px 6px', textAlign: 'left' }}>Código Proceso</th>
                               <th style={{ padding: '8px 6px', textAlign: 'left' }}>Objeto del Proceso</th>
                               <th style={{ padding: '8px 6px', textAlign: 'left' }}>Estado</th>
-                              <th style={{ padding: '8px 6px', textAlign: 'left' }}>Archivo</th>
+                              <th style={{ padding: '8px 6px', textAlign: 'left' }}>Link</th>
                               <th style={{ padding: '8px 6px', textAlign: 'left' }}>Fecha</th>
                               <th style={{ padding: '8px 6px', textAlign: 'center' }}>Acciones</th>
                             </tr>
@@ -248,8 +273,30 @@ export default function ProcesosAdministradoresPage() {
                                     </span>
                                   ) : '-'}
                                 </td>
-                                <td style={{ padding: '8px 6px', fontSize: 12, maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                  {proc.filename || '-'}
+                                <td style={{ padding: '8px 6px', fontSize: 12, maxWidth: 180 }}>
+                                  {proc.codigo_proceso ? (
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                                      <a
+                                        href={getProcesoLink(proc.codigo_proceso)}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        title={getProcesoLink(proc.codigo_proceso)}
+                                        style={{ color: 'var(--primary)', display: 'inline-flex', alignItems: 'center', gap: 4, textDecoration: 'none', fontWeight: 500 }}
+                                      >
+                                        <LinkIcon size={12} /> {proc.codigo_proceso}
+                                      </a>
+                                      <button
+                                        className="btn-icon"
+                                        onClick={() => copyLink(proc.codigo_proceso)}
+                                        title="Copiar link"
+                                        style={{ padding: 2 }}
+                                      >
+                                        <Copy size={12} />
+                                      </button>
+                                    </span>
+                                  ) : (
+                                    <span style={{ color: 'var(--text-muted)' }} title={proc.filename || ''}>{proc.filename || '-'}</span>
+                                  )}
                                 </td>
                                 <td style={{ padding: '8px 6px', fontSize: 12, whiteSpace: 'nowrap' }}>
                                   {proc.fecha_publicacion || (proc.fecha_procesamiento ? new Date(proc.fecha_procesamiento).toLocaleDateString() : '-')}
