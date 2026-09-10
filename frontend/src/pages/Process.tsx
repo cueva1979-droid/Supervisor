@@ -163,7 +163,9 @@ export default function Process() {
               ['Código Proceso', 'codigo_proceso'],
               ['N° Orden', 'numero_orden'],
               ['Fecha', 'fecha'],
+              ['Plazo de Entrega', 'plazo_entrega'],
               ['Monto Total', 'monto_total'],
+              ['Administrador', 'administrador'],
             ].map(([label, key]) => (
               <div key={key} className="form-group" style={{ margin: 0 }}>
                 <label>{label}</label>

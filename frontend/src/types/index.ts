@@ -26,6 +26,8 @@ export interface RecordData {
   observaciones?: string;
   fecha_procesamiento?: string;
   provider_id?: number;
+  plazo_entrega?: string;
+  administrador?: string;
   items: ItemData[];
 }
 

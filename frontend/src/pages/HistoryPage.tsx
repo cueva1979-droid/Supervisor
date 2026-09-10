@@ -204,6 +204,8 @@ export default function HistoryPage() {
                 <dt>Código Proceso</dt><dd>{detail.codigo_proceso || '-'}</dd>
                 <dt>N° Orden</dt><dd>{detail.numero_orden || '-'}</dd>
                 <dt>Fecha</dt><dd>{detail.fecha || '-'}</dd>
+                <dt>Plazo de Entrega</dt><dd>{(detail as any).plazo_entrega || '-'}</dd>
+                <dt>Administrador</dt><dd>{(detail as any).administrador || '-'}</dd>
                 <dt>Objeto</dt><dd>{detail.objeto_contratacion || '-'}</dd>
                 <dt>Monto Total</dt><dd>{(detail.monto_total ?? 0).toLocaleString('es-PY', { minimumFractionDigits: 2 })}</dd>
                 <dt>Moneda</dt><dd>{detail.moneda || '-'}</dd>

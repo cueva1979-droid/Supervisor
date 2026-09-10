@@ -573,23 +573,41 @@ class DocumentParser:
 
     def extract_plazo_entrega(self) -> Optional[str]:
         text = self.extract_text()
+        # Limpia artefactos de tablas: " | " y pipes iniciales
+        def _clean(raw: str) -> str:
+            r = raw.strip().strip('"').strip('\u201c\u201d').strip()
+            # Quitar pipes iniciales y separadores de tabla
+            r = re.sub(r'^[\|\s]+', '', r)
+            r = re.sub(r'\s*\|\s*', ' ', r)
+            r = re.sub(r'\s+', ' ', r).strip()
+            r = r.rstrip('.').strip()
+            # Si empieza con ":" remanente
+            r = r.lstrip(':').strip()
+            return r[:150]
+
         patterns = [
-            r'PLAZO\s*DE\s*ENTREGA\s*[:#]?\s*(.+?)(?:\n[A-Z\s]{3,}|$)',
-            r'PLAZO\s*[:#]?\s*(?:DE\s*ENTREGA\s*)?[:#]?\s*(.+?)(?:\n[A-Z\s]{3,}|$)',
+            r'PLAZO\s*DE\s*ENTREGA\s*[:#]?\s*(.+?)(?:\n[A-ZÁÉÍÓÚÑ\s]{3,}|$)',
+            r'PLAZO\s*DE\s*EJECUCI[ÓO]N\s*[:#]?\s*(?:\|\s*)?(.+?)(?:\n[A-ZÁÉÍÓÚÑ\s]{3,}|$)',
+            r'PLAZO\s*[:#]?\s*(?:DE\s*(?:ENTREGA|EJECUCI[ÓO]N)\s*)?[:#]?\s*(.+?)(?:\n[A-ZÁÉÍÓÚÑ\s]{3,}|$)',
         ]
         for p in patterns:
             m = re.search(p, text, re.IGNORECASE | re.DOTALL | re.MULTILINE)
             if m:
-                r = m.group(1).strip().strip('"').strip('\u201c\u201d').rstrip('.')
-                if len(r) > 2:
-                    return r[:100]
-        for line in text.split('\n'):
-            if 'PLAZO' in line.upper() and ('ENTREGA' in line.upper() or 'ENTREGA' not in text.upper()):
-                m = re.search(r'PLAZO(?:\s*DE\s*ENTREGA)?\s*[:#]?\s*(.+)', line, re.IGNORECASE)
-                if m:
-                    r = m.group(1).strip().rstrip('.')
+                r = _clean(m.group(1))
+                # Evitar capturar encabezados vacíos o texto de cláusula legal largo
+                if len(r) > 2 and len(r) <= 150 and not r.upper().startswith('PLAZO'):
+                    # Cortar si contiene salto a cláusula numerada "3. Cláusula" etc
+                    r = re.split(r'\s*\d+\.\s*Cl[áa]usula', r)[0].strip()
                     if len(r) > 2:
-                        return r[:100]
+                        return r
+        for line in text.split('\n'):
+            up = line.upper()
+            if 'PLAZO' in up and ('ENTREGA' in up or 'EJECUCI' in up or 'ENTREGA' not in text.upper()):
+                m = re.search(r'PLAZO(?:\s*DE\s*(?:ENTREGA|EJECUCI[ÓO]N))?\s*[:#]?\s*(.+)', line, re.IGNORECASE)
+                if m:
+                    r = _clean(m.group(1))
+                    if len(r) > 2 and len(r) <= 150:
+                        return r
         return None
 
     def extract_monto_total(self, items: List[Dict]) -> float:
