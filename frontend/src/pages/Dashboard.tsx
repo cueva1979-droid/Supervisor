@@ -204,7 +204,7 @@ export default function Dashboard() {
         </div>
 
         <div className="card">
-          <div className="card-header"><PieIcon size={18} /> Reporte por Estado de Ejecución — Módulo PAC</div>
+          <div className="card-header"><PieIcon size={18} /> Reporte por Estado de Ejecución — Plan Anual de Contratación</div>
           {!pacEjecucion ? (
             <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-secondary)' }}>Cargando...</div>
           ) : (() => {
@@ -253,7 +253,7 @@ export default function Dashboard() {
               </div>
             );
           })()}
-          <p style={{ textAlign: 'center', fontSize: 11, color: 'var(--text-secondary)', marginTop: 4 }}>Fuente: PAC → Análisis Periodos → Estado Ejecución</p>
+          <p style={{ textAlign: 'center', fontSize: 11, color: 'var(--text-secondary)', marginTop: 4 }}>Fuente: Plan Anual de Contratación → Análisis Periodos → Estado Ejecución</p>
         </div>
       </div>
     </div>

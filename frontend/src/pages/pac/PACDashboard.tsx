@@ -8,8 +8,8 @@ export default function PACDashboard({ onNavigate }: Props) {
   return (
     <div>
       <div style={{ marginBottom: 24, textAlign: 'center' }}>
-        <h2 style={{ fontSize: 24, fontWeight: 700, marginBottom: 4 }}>Módulo PAC</h2>
-        <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>Plan Anual de Contratación</p>
+        <h2 style={{ fontSize: 24, fontWeight: 700, marginBottom: 4 }}>Plan Anual de Contratación</h2>
+        <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>Módulo Plan Anual de Contratación</p>
       </div>
 
       <div className="grid-4">
