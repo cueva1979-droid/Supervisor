@@ -70,7 +70,7 @@ class PDFExtractor:
     def _normalize_date(self, date_str: str) -> str:
         date_str = date_str.strip()
         m = re.match(
-            r"(\d{1,2})\s*de\s*([a-záéíóúñ]+)\s*(?:de|del)\s*(\d{4})",
+            r"(\d{1,2})\s*(?:de\s+)?([a-záéíóúñ]+)\s*(?:del|de)\s*(\d{4})",
             date_str, re.IGNORECASE
         )
         if m:
@@ -141,7 +141,7 @@ class PDFExtractor:
                 return self._normalize_date(m.group(1).strip().rstrip("."))
             except Exception:
                 pass
-        m = re.search(r"(\d{1,2})\s*de\s*([a-záéíóúñ]+)\s*(?:de|del)\s*(\d{4})", self.text, re.IGNORECASE)
+        m = re.search(r"(\d{1,2})\s*(?:de\s+)?([a-záéíóúñ]+)\s*(?:del|de)\s*(\d{4})", self.text, re.IGNORECASE)
         if m:
             return f"{m.group(1).zfill(2)}/{MONTHS_ES.get(m.group(2).lower(), '01')}/{m.group(3)[-2:]}"
         m = re.search(r"\b(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})\b", self.text)

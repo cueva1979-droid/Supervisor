@@ -15,8 +15,8 @@ function formatFechaAA(fecha?: string): string {
     const [d, mo, y] = s.split('/');
     return `${d.padStart(2, '0')}/${mo.padStart(2, '0')}/${y.slice(-2)}`;
   }
-  // textual "28 de abril del 2026"
-  const tm = s.match(/(\d{1,2})\s*de\s*([a-záéíóúñ]+)\s*(?:de|del)\s*(\d{4})/i);
+  // textual "28 de abril del 2026" / "16 junio del 2026"
+  const tm = s.match(/(\d{1,2})\s*(?:de\s+)?([a-záéíóúñ]+)\s*(?:del|de)\s*(\d{4})/i);
   if (tm) {
     const months: Record<string, string> = { enero: '01', febrero: '02', marzo: '03', abril: '04', mayo: '05', junio: '06', julio: '07', agosto: '08', septiembre: '09', octubre: '10', noviembre: '11', diciembre: '12' };
     return `${tm[1].padStart(2, '0')}/${months[tm[2].toLowerCase()] || '01'}/${tm[3].slice(-2)}`;
