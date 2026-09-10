@@ -4,6 +4,26 @@ import { getRecords, deleteRecord, deleteRecordsBulk, getRecord, updateRecord, g
 import type { RecordData } from '../types';
 import CanEdit from '../components/CanEdit';
 
+function formatFechaAA(fecha?: string): string {
+  if (!fecha) return '-';
+  const s = fecha.trim();
+  // dd/mm/yyyy -> dd/mm/aa
+  const m4 = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (m4) return `${m4[1].padStart(2, '0')}/${m4[2].padStart(2, '0')}/${m4[3].slice(-2)}`;
+  // ya es dd/mm/aa normalizar padding
+  if (/^\d{1,2}\/\d{1,2}\/\d{2}$/.test(s)) {
+    const [d, mo, y] = s.split('/');
+    return `${d.padStart(2, '0')}/${mo.padStart(2, '0')}/${y.slice(-2)}`;
+  }
+  // textual "28 de abril del 2026"
+  const tm = s.match(/(\d{1,2})\s*de\s*([a-záéíóúñ]+)\s*(?:de|del)\s*(\d{4})/i);
+  if (tm) {
+    const months: Record<string, string> = { enero: '01', febrero: '02', marzo: '03', abril: '04', mayo: '05', junio: '06', julio: '07', agosto: '08', septiembre: '09', octubre: '10', noviembre: '11', diciembre: '12' };
+    return `${tm[1].padStart(2, '0')}/${months[tm[2].toLowerCase()] || '01'}/${tm[3].slice(-2)}`;
+  }
+  return s;
+}
+
 export default function HistoryPage() {
   const [records, setRecords] = useState<RecordData[]>([]);
   const [search, setSearch] = useState('');
@@ -255,7 +275,7 @@ export default function HistoryPage() {
                   <td>{r.ruc || '-'}</td>
                   <td>{r.codigo_proceso || '-'}</td>
                   <td>{r.numero_orden || '-'}</td>
-                  <td>{r.fecha || '-'}</td>
+                  <td>{formatFechaAA(r.fecha)}</td>
                   <td>{(r.monto_total ?? 0).toLocaleString('es-PY', { minimumFractionDigits: 2 })}</td>
                   <td>
                     <div className="table-actions">
@@ -287,7 +307,7 @@ export default function HistoryPage() {
                 <dt>RUC</dt><dd>{detail.ruc || '-'}</dd>
                 <dt>Código Proceso</dt><dd>{detail.codigo_proceso || '-'}</dd>
                 <dt>N° Orden</dt><dd>{detail.numero_orden || '-'}</dd>
-                <dt>Fecha</dt><dd>{detail.fecha || '-'}</dd>
+                <dt>Fecha</dt><dd>{formatFechaAA(detail.fecha)}</dd>
                 <dt>Plazo de Entrega</dt><dd>{(detail as any).plazo_entrega || '-'}</dd>
                 <dt>Administrador</dt><dd>{(detail as any).administrador || '-'}</dd>
                 <dt>Objeto</dt><dd>{detail.objeto_contratacion || '-'}</dd>
@@ -346,7 +366,7 @@ export default function HistoryPage() {
                 <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>RUC<input className="form-input" value={editForm.ruc} onChange={e => setEditForm({ ...editForm, ruc: e.target.value })} /></label>
                 <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>Código Proceso<input className="form-input" value={editForm.codigo_proceso} onChange={e => setEditForm({ ...editForm, codigo_proceso: e.target.value })} /></label>
                 <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>N° Orden<input className="form-input" value={editForm.numero_orden} onChange={e => setEditForm({ ...editForm, numero_orden: e.target.value })} /></label>
-                <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>Fecha<input className="form-input" value={editForm.fecha} onChange={e => setEditForm({ ...editForm, fecha: e.target.value })} placeholder="DD/MM/YYYY" /></label>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>Fecha<input className="form-input" value={editForm.fecha} onChange={e => setEditForm({ ...editForm, fecha: e.target.value })} placeholder="DD/MM/AA" /></label>
                 <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>Monto Total<input className="form-input" type="number" value={editForm.monto_total} onChange={e => setEditForm({ ...editForm, monto_total: parseFloat(e.target.value) || 0 })} /></label>
                 <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>Administrador<input className="form-input" value={editForm.administrador} onChange={e => setEditForm({ ...editForm, administrador: e.target.value })} /></label>
                 <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>Plazo Entrega<input className="form-input" value={editForm.plazo_entrega} onChange={e => setEditForm({ ...editForm, plazo_entrega: e.target.value })} /></label>
