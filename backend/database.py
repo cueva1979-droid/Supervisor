@@ -82,6 +82,40 @@ def init_db():
             conn.commit()
         except Exception:
             pass
+    # Migración fecha dd/mm/yyyy -> dd/mm/aa (ej. 28/04/2026 -> 28/04/26)
+    try:
+        import re as _re
+        from models import Record as _Record
+        _db = SessionLocal()
+        try:
+            _pat = _re.compile(r'^\d{2}/\d{2}/\d{4}$')
+            _records = _db.query(_Record).filter(_Record.fecha.isnot(None)).all()
+            _changed = 0
+            for _r in _records:
+                if _r.fecha and _pat.match(_r.fecha.strip()):
+                    _r.fecha = _r.fecha.strip()[:6] + _r.fecha.strip()[-2:]
+                    _changed += 1
+            if _changed:
+                _db.commit()
+                print(f"[db] Migradas {_changed} fechas a formato dd/mm/aa")
+            # también migrar CE si existe (consistencia)
+            try:
+                from models import CEExtractionDB as _CE
+                _ces = _db.query(_CE).filter(_CE.fecha_aceptacion.isnot(None)).all()
+                _c_changed = 0
+                for _c in _ces:
+                    if _c.fecha_aceptacion and _pat.match(_c.fecha_aceptacion.strip()):
+                        _c.fecha_aceptacion = _c.fecha_aceptacion.strip()[:6] + _c.fecha_aceptacion.strip()[-2:]
+                        _c_changed += 1
+                if _c_changed:
+                    _db.commit()
+                    print(f"[db] Migradas {_c_changed} fechas CE a formato dd/mm/aa")
+            except Exception:
+                pass
+        finally:
+            _db.close()
+    except Exception:
+        pass
     if not DB_IS_SQLITE:
         return
     with engine.connect() as conn:

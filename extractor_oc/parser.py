@@ -70,19 +70,19 @@ class PDFExtractor:
     def _normalize_date(self, date_str: str) -> str:
         date_str = date_str.strip()
         m = re.match(
-            r"(\d{1,2})\s*de\s*([a-záéíóúñ]+)\s*de\s*(\d{4})",
+            r"(\d{1,2})\s*de\s*([a-záéíóúñ]+)\s*(?:de|del)\s*(\d{4})",
             date_str, re.IGNORECASE
         )
         if m:
             day = m.group(1).zfill(2)
             month = MONTHS_ES.get(m.group(2).lower(), "01")
-            return f"{day}/{month}/{m.group(3)}"
+            return f"{day}/{month}/{m.group(3)[-2:]}"
         m = re.match(r"(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})", date_str)
         if m:
             y = m.group(3)
             if len(y) == 2:
                 y = "20" + y if int(y) < 50 else "19" + y
-            return f"{m.group(1).zfill(2)}/{m.group(2).zfill(2)}/{y}"
+            return f"{m.group(1).zfill(2)}/{m.group(2).zfill(2)}/{y[-2:]}"
         return date_str
 
     # ==================== FORMATO INFIMA CUANTIA ====================
@@ -141,9 +141,9 @@ class PDFExtractor:
                 return self._normalize_date(m.group(1).strip().rstrip("."))
             except Exception:
                 pass
-        m = re.search(r"(\d{1,2})\s*de\s*([a-záéíóúñ]+)\s*de\s*(\d{4})", self.text, re.IGNORECASE)
+        m = re.search(r"(\d{1,2})\s*de\s*([a-záéíóúñ]+)\s*(?:de|del)\s*(\d{4})", self.text, re.IGNORECASE)
         if m:
-            return f"{m.group(1).zfill(2)}/{MONTHS_ES.get(m.group(2).lower(), '01')}/{m.group(3)}"
+            return f"{m.group(1).zfill(2)}/{MONTHS_ES.get(m.group(2).lower(), '01')}/{m.group(3)[-2:]}"
         m = re.search(r"\b(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})\b", self.text)
         if m:
             return self._normalize_date(m.group(1))

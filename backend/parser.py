@@ -60,15 +60,17 @@ class DocumentParser:
 
     def _normalize_date(self, date_str: str) -> str:
         date_str = date_str.strip()
-        m = re.match(r'(\d{1,2})\s*de\s*([a-záéíóúñ]+)\s*de\s*(\d{4})', date_str, re.IGNORECASE)
+        m = re.match(r'(\d{1,2})\s*de\s*([a-záéíóúñ]+)\s*(?:de|del)\s*(\d{4})', date_str, re.IGNORECASE)
         if m:
-            return f"{m.group(1).zfill(2)}/{MONTHS_ES.get(m.group(2).lower(), '01')}/{m.group(3)}"
+            # formato requerido dd/mm/aa (ej. 28 de abril del 2026 -> 28/04/26)
+            return f"{m.group(1).zfill(2)}/{MONTHS_ES.get(m.group(2).lower(), '01')}/{m.group(3)[-2:]}"
         m = re.match(r'(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})', date_str)
         if m:
             y = m.group(3)
             if len(y) == 2:
                 y = '20' + y if int(y) < 50 else '19' + y
-            return f"{m.group(1).zfill(2)}/{m.group(2).zfill(2)}/{y}"
+            # devolver siempre aa (2 dígitos)
+            return f"{m.group(1).zfill(2)}/{m.group(2).zfill(2)}/{y[-2:]}"
         return date_str
 
     def extract_proveedor(self) -> Optional[str]:
@@ -215,14 +217,14 @@ class DocumentParser:
                 return self._normalize_date(m.group(1).strip().rstrip('.'))
             except:
                 pass
-        m = re.search(r'(\d{1,2})\s*de\s*([a-záéíóúñ]+)\s*de\s*(\d{4})', text, re.IGNORECASE)
+        m = re.search(r'(\d{1,2})\s*de\s*([a-záéíóúñ]+)\s*(?:de|del)\s*(\d{4})', text, re.IGNORECASE)
         if m:
-            return f"{m.group(1).zfill(2)}/{MONTHS_ES.get(m.group(2).lower(), '01')}/{m.group(3)}"
+            return f"{m.group(1).zfill(2)}/{MONTHS_ES.get(m.group(2).lower(), '01')}/{m.group(3)[-2:]}"
         m = re.search(r'\b(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})\b', text)
         if m:
             return self._normalize_date(m.group(1))
         from datetime import datetime
-        return datetime.now().strftime("%d/%m/%Y")
+        return datetime.now().strftime("%d/%m/%y")
 
     def extract_objeto(self) -> Optional[str]:
         text = self.extract_text()
