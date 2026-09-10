@@ -56,6 +56,18 @@ def get_db():
 
 def init_db():
     Base.metadata.create_all(bind=engine)
+    # Migración: plazo_entrega de VARCHAR(100) -> TEXT (fix StringDataRightTruncation)
+    with engine.connect() as conn:
+        try:
+            if not DB_IS_SQLITE:
+                conn.execute(text("ALTER TABLE records ALTER COLUMN plazo_entrega TYPE TEXT USING plazo_entrega::TEXT"))
+                conn.commit()
+            else:
+                # SQLite: ignora tipo, pero asegurar columna existe si falta
+                conn.execute(text("ALTER TABLE records ADD COLUMN plazo_entrega TEXT"))
+                conn.commit()
+        except Exception:
+            pass
     # Ensure new PAC estado_ejecucion column exists (Postgres & SQLite)
     with engine.connect() as conn:
         try:
@@ -74,7 +86,7 @@ def init_db():
         return
     with engine.connect() as conn:
         for col in [
-            "ALTER TABLE records ADD COLUMN plazo_entrega VARCHAR(100)",
+            "ALTER TABLE records ADD COLUMN plazo_entrega TEXT",
             "ALTER TABLE ce_items ADD COLUMN partida_presupuestaria VARCHAR(255)",
             "ALTER TABLE cam_extractions ADD COLUMN fecha_publicacion VARCHAR(20)",
             "ALTER TABLE ce_extractions ADD COLUMN estado VARCHAR(50) DEFAULT 'En Ejecucion'",

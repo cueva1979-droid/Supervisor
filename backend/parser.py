@@ -583,7 +583,8 @@ class DocumentParser:
             r = r.rstrip('.').strip()
             # Si empieza con ":" remanente
             r = r.lstrip(':').strip()
-            return r[:150]
+            # Limitar a 500 para no exceder límites de DB; modelo ahora usa TEXT
+            return r[:500]
 
         patterns = [
             r'PLAZO\s*DE\s*ENTREGA\s*[:#]?\s*(.+?)(?:\n[A-ZÁÉÍÓÚÑ\s]{3,}|$)',

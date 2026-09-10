@@ -27,7 +27,7 @@ class Record(Base):
     fecha = Column(String(50), nullable=True)
     objeto_contratacion = Column(Text, nullable=True)
     administrador = Column(String(255), nullable=True)
-    plazo_entrega = Column(String(100), nullable=True)
+    plazo_entrega = Column(Text, nullable=True)
     monto_total = Column(Float, default=0.0)
     moneda = Column(String(10), default="USD")
     estado = Column(String(50), default="completado")

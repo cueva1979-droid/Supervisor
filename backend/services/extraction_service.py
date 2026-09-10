@@ -112,6 +112,11 @@ def upload_and_process(files, db: Session) -> List[Record]:
             record = process_document(filepath, file.filename, db)
             results.append((file.filename, record, None))
         except Exception as e:
+            # rollback para liberar la sesión tras StringDataRightTruncation u otros errores de flush
+            try:
+                db.rollback()
+            except Exception:
+                pass
             if filepath and os.path.exists(filepath):
                 try: os.remove(filepath)
                 except: pass
