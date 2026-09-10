@@ -90,13 +90,24 @@ export default function Dashboard() {
               <svg width={200} height={200} viewBox="0 0 200 200" style={{ flexShrink: 0 }}>
                 {(() => {
                   let acc = 0;
-                  return ordenes.map(([label, value], i) => {
+                  return ordenes.flatMap(([label, value], i) => {
                     const start = (acc / totalOrdenesPie) * 360;
                     acc += value;
                     const end = (acc / totalOrdenesPie) * 360;
                     const color = PIE_COLORS[i % PIE_COLORS.length];
-                    if (value === 0) return null;
-                    return <path key={label} d={describeArc(100, 100, 80, start, end)} fill={color} stroke="white" strokeWidth={2} />;
+                    if (value === 0) return [];
+                    const pct = (value / totalOrdenesPie) * 100;
+                    const mid = (start + end) / 2;
+                    const pos = polarToCartesian(100, 100, 48, mid);
+                    const elems: any[] = [
+                      <path key={label} d={describeArc(100, 100, 80, start, end)} fill={color} stroke="white" strokeWidth={2} />
+                    ];
+                    if (pct >= 4) {
+                      elems.push(
+                        <text key={label + '-pct'} x={pos.x} y={pos.y} textAnchor="middle" dominantBaseline="middle" fontSize={pct >= 10 ? 11 : 9} fontWeight={800} fill="white" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.6)', paintOrder: 'stroke', stroke: 'rgba(0,0,0,0.35)', strokeWidth: 2 }}>{pct.toFixed(1)}%</text>
+                      );
+                    }
+                    return elems;
                   });
                 })()}
                 <circle cx={100} cy={100} r={45} fill="var(--bg, white)" />
@@ -207,12 +218,23 @@ export default function Dashboard() {
             return (
               <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap', justifyContent: 'center', padding: 12 }}>
                 <svg width={180} height={180} viewBox="0 0 200 200" style={{ flexShrink: 0 }}>
-                  {items.map(([label, value, color]) => {
-                    if (value === 0) return null;
+                  {items.flatMap(([label, value, color]) => {
+                    if (value === 0) return [];
                     const start = (acc / total) * 360;
                     acc += value;
                     const end = (acc / total) * 360;
-                    return <path key={label} d={describeArc(100, 100, 75, start, end)} fill={color} stroke="white" strokeWidth={2} />;
+                    const pct = (value / total) * 100;
+                    const mid = (start + end) / 2;
+                    const pos = polarToCartesian(100, 100, 46, mid);
+                    const elems: any[] = [
+                      <path key={label} d={describeArc(100, 100, 75, start, end)} fill={color} stroke="white" strokeWidth={2} />
+                    ];
+                    if (pct >= 4) {
+                      elems.push(
+                        <text key={label + '-pct'} x={pos.x} y={pos.y} textAnchor="middle" dominantBaseline="middle" fontSize={pct >= 12 ? 11 : 9} fontWeight={800} fill="white" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.6)', paintOrder: 'stroke', stroke: 'rgba(0,0,0,0.35)', strokeWidth: 2 }}>{pct.toFixed(1)}%</text>
+                      );
+                    }
+                    return elems;
                   })}
                   <circle cx={100} cy={100} r={42} fill="var(--bg, white)" />
                   <text x={100} y={100} textAnchor="middle" dy={-4} fontSize={16} fontWeight={800} fill="var(--text)">{total}</text>
