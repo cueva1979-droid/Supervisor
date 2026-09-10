@@ -98,7 +98,7 @@ export default function Dashboard() {
                     if (value === 0) return [];
                     const pct = (value / totalOrdenesPie) * 100;
                     const mid = (start + end) / 2;
-                    const pos = polarToCartesian(100, 100, 47, mid);
+                    const pos = polarToCartesian(100, 100, 62, mid);
                     const elems: any[] = [
                       <path key={label} d={describeArc(100, 100, 80, start, end)} fill={color} stroke="white" strokeWidth={2} />
                     ];
@@ -225,7 +225,7 @@ export default function Dashboard() {
                     const end = (acc / total) * 360;
                     const pct = (value / total) * 100;
                     const mid = (start + end) / 2;
-                    const pos = polarToCartesian(100, 100, 44, mid);
+                    const pos = polarToCartesian(100, 100, 58, mid);
                     const elems: any[] = [
                       <path key={label} d={describeArc(100, 100, 75, start, end)} fill={color} stroke="white" strokeWidth={2} />
                     ];
