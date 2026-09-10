@@ -104,7 +104,7 @@ export default function Dashboard() {
                     ];
                     if (pct >= 4) {
                       elems.push(
-                        <text key={label + '-pct'} x={pos.x} y={pos.y} textAnchor="middle" dominantBaseline="middle" fontSize={pct >= 10 ? 11 : 9} fontWeight={800} fill="white" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.6)', paintOrder: 'stroke', stroke: 'rgba(0,0,0,0.35)', strokeWidth: 2 }}>{pct.toFixed(1)}%</text>
+                        <text key={label + '-pct'} x={pos.x} y={pos.y} textAnchor="middle" dominantBaseline="middle" fontSize={pct >= 10 ? 11 : 9} fontWeight={800} fill="white" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.6)', paintOrder: 'stroke', stroke: 'rgba(0,0,0,0.35)', strokeWidth: 2 }}>{Math.round(pct)}%</text>
                       );
                     }
                     return elems;
@@ -231,7 +231,7 @@ export default function Dashboard() {
                     ];
                     if (pct >= 4) {
                       elems.push(
-                        <text key={label + '-pct'} x={pos.x} y={pos.y} textAnchor="middle" dominantBaseline="middle" fontSize={pct >= 12 ? 11 : 9} fontWeight={800} fill="white" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.6)', paintOrder: 'stroke', stroke: 'rgba(0,0,0,0.35)', strokeWidth: 2 }}>{pct.toFixed(1)}%</text>
+                        <text key={label + '-pct'} x={pos.x} y={pos.y} textAnchor="middle" dominantBaseline="middle" fontSize={pct >= 12 ? 11 : 9} fontWeight={800} fill="white" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.6)', paintOrder: 'stroke', stroke: 'rgba(0,0,0,0.35)', strokeWidth: 2 }}>{Math.round(pct)}%</text>
                       );
                     }
                     return elems;
