@@ -109,23 +109,46 @@ export default function ProcesosAdministradoresPage() {
     return `https://www.compraspublicas.gob.ec/ProcesoContratacion/compras/PC/buscarProceso.cpe?codigo=${encodeURIComponent(codigo)}`;
   };
 
-  const copyLink = async (codigo: string) => {
+  const copyLink = async (codigo: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
     const url = getProcesoLink(codigo);
-    if (!url) return;
+    if (!url) {
+      setError('No hay código de proceso para generar el link');
+      return;
+    }
+    const showOk = () => {
+      setError('');
+      setSuccess(`Link copiado: ${url}`);
+      setTimeout(() => setSuccess(''), 2800);
+    };
+    // Intento 1: Clipboard API (requiere HTTPS / localhost)
     try {
-      await navigator.clipboard.writeText(url);
-      setSuccess(`Link copiado: ${url}`);
-      setTimeout(() => setSuccess(''), 2500);
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(url);
+        showOk();
+        return;
+      }
+      throw new Error('clipboard no disponible');
     } catch {
-      // fallback
-      const ta = document.createElement('textarea');
-      ta.value = url;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand('copy');
-      document.body.removeChild(ta);
-      setSuccess(`Link copiado: ${url}`);
-      setTimeout(() => setSuccess(''), 2500);
+      // Fallback: textarea + execCommand
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = url;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.top = '0';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        ta.setSelectionRange(0, 99999);
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        if (!ok) throw new Error('execCommand falló');
+        showOk();
+      } catch (err: any) {
+        setError(`No se pudo copiar automáticamente. Copie manualmente: ${url}`);
+      }
     }
   };
 
@@ -287,9 +310,9 @@ export default function ProcesosAdministradoresPage() {
                                       </a>
                                       <button
                                         className="btn-icon"
-                                        onClick={() => copyLink(proc.codigo_proceso)}
+                                        onClick={(e) => copyLink(proc.codigo_proceso, e)}
                                         title="Copiar link"
-                                        style={{ padding: 2 }}
+                                        style={{ padding: 4, border: '1px solid var(--border)', borderRadius: 4 }}
                                       >
                                         <Copy size={12} />
                                       </button>
