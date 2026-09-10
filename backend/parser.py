@@ -152,6 +152,21 @@ class DocumentParser:
 
     def extract_codigo_proceso(self) -> Optional[str]:
         text = self.extract_text()
+        # Prioridad 1: NIC - modelo NIC-1960001270001-2026-00012
+        # El NIC debe mostrarse en el campo Código Proceso de la página Ínfima Cuantía
+        nic_patterns = [
+            r'\b(NIC-\d{10,}-\d{4}-\d+)\b',
+            r'NIC\s*[:#\-]?\s*(NIC-\d[\d\-]+)',
+            r'NIC\s*[:#]?\s*(\d{10,}-\d{4}-\d+)',
+        ]
+        for p in nic_patterns:
+            m = re.search(p, text, re.IGNORECASE)
+            if m:
+                val = m.group(1).strip()
+                # Normalizar: asegurar prefijo NIC-
+                if not val.upper().startswith('NIC'):
+                    val = f'NIC-{val}'
+                return val
         patterns = [
             r'(?:C[ÓO]DIGO\s*(?:DEL)?\s*PROCESO|CDP)\s*[:#]?\s*([A-Z0-9\-/]{4,})',
             r'PARTIDA\s*PRESUPUESTARIA\s*[:#]?\s*([\d.]+)',

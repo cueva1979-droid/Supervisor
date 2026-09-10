@@ -98,6 +98,22 @@ class PDFExtractor:
         oc.items = self._extract_items_infima()
         oc.v_total = self._extract_total_infima(oc.items)
 
+    def _extract_nic_infima(self) -> str:
+        """Extrae NIC modelo NIC-1960001270001-2026-00012 para usar como Código Proceso."""
+        nic_patterns = [
+            r'\b(NIC-\d{10,}-\d{4}-\d+)\b',
+            r'NIC\s*[:#\-]?\s*(NIC-\d[\d\-]+)',
+            r'NIC\s*[:#]?\s*(\d{10,}-\d{4}-\d+)',
+        ]
+        for p in nic_patterns:
+            m = re.search(p, self.text, re.IGNORECASE)
+            if m:
+                val = m.group(1).strip()
+                if not val.upper().startswith('NIC'):
+                    val = f'NIC-{val}'
+                return val
+        return ""
+
     def _extract_orden_compra_infima(self) -> str:
         for table in self.tables:
             for row in table:
