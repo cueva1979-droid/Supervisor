@@ -20,6 +20,7 @@ interface Proceso {
   filename: string;
   fecha_publicacion: string;
   fecha_procesamiento: string;
+  soli_compra_token: string | null;
 }
 
 interface Administrador {
@@ -104,24 +105,16 @@ export default function ProcesosAdministradoresPage() {
     }
   };
 
-  const KNOWN_LINKS: Record<string, string> = {
-    'RE-CEP-GADCCC-2026-001': 'https://www.compraspublicas.gob.ec/ProcesoContratacion/compras/PC/informacionProcesoContratacion2.cpe?idSoliCompra=hyoblQeLSGRWn3sL2Upk1gRH-k-3SJK1CrqpRRJSz5k',
-    'LICO-GADCCC-2025-003': 'https://www.compraspublicas.gob.ec/ProcesoContratacion/compras/PC/informacionProcesoContratacion2.cpe?idSoliCompra=U-qSfLiSaTNwOpTVX0Rv77fYwSfQZNPMnR2pyFBvcj4',
+  const getProcesoLink = (proc: Proceso): string | null => {
+    if (proc.soli_compra_token) {
+      return `https://www.compraspublicas.gob.ec/ProcesoContratacion/compras/PC/informacionProcesoContratacion2.cpe?idSoliCompra=${proc.soli_compra_token}`;
+    }
+    return null;
   };
 
-  const normalizeCodigo = (codigo: string): string => {
-    return codigo.replace(/\s+/g, '').toUpperCase().replace('RE-CEPGADCCC', 'RE-CEP-GADCCC');
-  };
-
-  const getProcesoLink = (codigo: string): string | null => {
-    if (!codigo) return null;
-    const norm = normalizeCodigo(codigo);
-    return KNOWN_LINKS[norm] || null;
-  };
-
-  const copyLink = async (codigo: string, e?: React.MouseEvent) => {
+  const copyLink = async (proc: Proceso, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    const url = getProcesoLink(codigo);
+    const url = getProcesoLink(proc);
     if (!url) {
       setError('Este proceso no tiene link disponible en Compras Públicas');
       setTimeout(() => setError(''), 2800);
@@ -307,7 +300,7 @@ export default function ProcesosAdministradoresPage() {
                                 </td>
                                 <td style={{ padding: '8px 6px', fontSize: 12, maxWidth: 180 }}>
                                   {(() => {
-                                    const link = getProcesoLink(proc.codigo_proceso);
+                                    const link = getProcesoLink(proc);
                                     if (link) {
                                       return (
                                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
@@ -322,7 +315,7 @@ export default function ProcesosAdministradoresPage() {
                                           </a>
                                           <button
                                             className="btn-icon"
-                                            onClick={(e) => copyLink(proc.codigo_proceso, e)}
+                                            onClick={(e) => copyLink(proc, e)}
                                             title="Copiar link"
                                             style={{ padding: 4, border: '1px solid var(--border)', borderRadius: 4 }}
                                           >

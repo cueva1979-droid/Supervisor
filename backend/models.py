@@ -137,6 +137,7 @@ class CAMExtraction(Base):
     fecha_publicacion = Column(String(20), nullable=True)
     raw_data = Column(Text, nullable=True)
     fecha_procesamiento = Column(String(50), default=lambda: datetime.datetime.utcnow().isoformat())
+    soli_compra_token = Column(String(255), nullable=True)
 
 # ==================== Security Models ====================
 

@@ -138,8 +138,9 @@ def init_db():
         for col in [
             "ALTER TABLE records ADD COLUMN plazo_entrega TEXT",
             "ALTER TABLE ce_items ADD COLUMN partida_presupuestaria VARCHAR(255)",
-            "ALTER TABLE cam_extractions ADD COLUMN fecha_publicacion VARCHAR(20)",
-            "ALTER TABLE ce_extractions ADD COLUMN estado VARCHAR(50) DEFAULT 'En Ejecucion'",
+        "ALTER TABLE cam_extractions ADD COLUMN fecha_publicacion VARCHAR(20)",
+        "ALTER TABLE ce_extractions ADD COLUMN estado VARCHAR(50) DEFAULT 'En Ejecucion'",
+        "ALTER TABLE cam_extractions ADD COLUMN soli_compra_token VARCHAR(255)",
         ]:
             try:
                 conn.execute(text(col))

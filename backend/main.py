@@ -1458,6 +1458,7 @@ def procesos_administradores(search: Optional[str] = Query(None), user: User = D
             "filename": ext.filename or "",
             "fecha_publicacion": ext.fecha_publicacion or "",
             "fecha_procesamiento": ext.fecha_procesamiento or "",
+            "soli_compra_token": getattr(ext, "soli_compra_token", None),
         })
         grouped[admin]["total_procesos"] += 1
     return list(grouped.values())

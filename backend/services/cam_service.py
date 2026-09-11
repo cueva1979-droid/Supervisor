@@ -24,6 +24,7 @@ ADMIN_RE = re.compile(r'([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ\s]+(?:/[a-z0-9]+))')
 def extract_cam_data(filepath: str) -> Dict:
     full_text = ""
     tables = []
+    annotations_tokens = []
 
     with pdfplumber.open(filepath) as pdf:
         for page in pdf.pages:
@@ -33,6 +34,20 @@ def extract_cam_data(filepath: str) -> Dict:
             pt = page.extract_tables()
             if pt:
                 tables.extend(pt)
+            # Extract idSoliCompra tokens from annotations (hyperlinks)
+            if hasattr(page, "annots") and page.annots:
+                for annot in page.annots:
+                    data = annot.get("data", {})
+                    uri_obj = data.get("A", {})
+                    uri = uri_obj.get("URI", b"")
+                    if isinstance(uri, bytes):
+                        uri = uri.decode("utf-8", errors="ignore")
+                    if "idSoliCompra=" in uri:
+                        m = re.search(r"idSoliCompra=([A-Za-z0-9_,.\-]+)", uri)
+                        if m:
+                            token = m.group(1).rstrip(",")
+                            if token not in annotations_tokens:
+                                annotations_tokens.append(token)
 
     result = {
         "codigo_proceso": None,
@@ -41,7 +56,8 @@ def extract_cam_data(filepath: str) -> Dict:
         "estado_proceso": None,
         "fecha_publicacion": None,
         "multiple": False,
-        "procesos": []
+        "procesos": [],
+        "annotation_tokens": annotations_tokens,
     }
 
     admin = _extract_admin(full_text, tables)
@@ -341,6 +357,7 @@ def process_cam_pdf(filepath: str, filename: str, db: Session) -> dict:
 
     # Collect all procesos to save (use all from data["procesos"] if multiple)
     procesos_to_save = data.get("procesos", [])
+    annotation_tokens = data.get("annotation_tokens", [])
     if not procesos_to_save:
         procesos_to_save = [{
             "codigo": data.get("codigo_proceso"),
@@ -357,12 +374,14 @@ def process_cam_pdf(filepath: str, filename: str, db: Session) -> dict:
     created_count = 0
     updated_count = 0
 
-    for p in procesos_to_save:
+    for idx, p in enumerate(procesos_to_save):
         pc = p.get("codigo")
         if not pc:
             continue
         pc = _normalize_codigo(pc)
         p["codigo"] = pc
+        # Associate annotation token by index (tokens are in same order as processes)
+        soli_token = annotation_tokens[idx] if idx < len(annotation_tokens) else None
         existing = db.query(CAMExtraction).filter(CAMExtraction.codigo_proceso == pc).first()
         if existing:
             if admin:
@@ -377,6 +396,8 @@ def process_cam_pdf(filepath: str, filename: str, db: Session) -> dict:
                 existing.fecha_publicacion = fecha
             existing.filename = filename
             existing.fecha_procesamiento = now
+            if soli_token:
+                existing.soli_compra_token = soli_token
             db.flush()
             updated_count += 1
             affected.append(_extraction_to_dict(existing))
@@ -391,6 +412,7 @@ def process_cam_pdf(filepath: str, filename: str, db: Session) -> dict:
                 fecha_publicacion=p.get("fecha") or fecha_default,
                 raw_data=str(data),
                 fecha_procesamiento=now,
+                soli_compra_token=soli_token,
             )
             db.add(ext)
             db.flush()
@@ -416,6 +438,7 @@ def _extraction_to_dict(ext) -> dict:
         "estado_proceso": ext.estado_proceso,
         "fecha_publicacion": ext.fecha_publicacion or "",
         "fecha_procesamiento": ext.fecha_procesamiento or "",
+        "soli_compra_token": getattr(ext, "soli_compra_token", None),
     }
 
 
