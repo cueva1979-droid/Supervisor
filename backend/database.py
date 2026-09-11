@@ -75,6 +75,13 @@ def init_db():
             conn.commit()
         except Exception:
             pass
+    # Ensure soli_compra_token column exists (Postgres & SQLite)
+    with engine.connect() as conn:
+        try:
+            conn.execute(text("ALTER TABLE cam_extractions ADD COLUMN soli_compra_token VARCHAR(255)"))
+            conn.commit()
+        except Exception:
+            pass
     # Migrar moneda PYG -> USD
     with engine.connect() as conn:
         try:
@@ -140,7 +147,6 @@ def init_db():
             "ALTER TABLE ce_items ADD COLUMN partida_presupuestaria VARCHAR(255)",
         "ALTER TABLE cam_extractions ADD COLUMN fecha_publicacion VARCHAR(20)",
         "ALTER TABLE ce_extractions ADD COLUMN estado VARCHAR(50) DEFAULT 'En Ejecucion'",
-        "ALTER TABLE cam_extractions ADD COLUMN soli_compra_token VARCHAR(255)",
         ]:
             try:
                 conn.execute(text(col))
