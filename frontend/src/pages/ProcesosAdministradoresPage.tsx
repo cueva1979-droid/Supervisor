@@ -104,23 +104,27 @@ export default function ProcesosAdministradoresPage() {
     }
   };
 
-  const getProcesoLink = (codigo: string) => {
-    if (!codigo) return '';
-    const norm = codigo.replace(/\s+/g, '').toUpperCase().replace('RE-CEPGADCCC', 'RE-CEP-GADCCC');
-    if (norm === 'RE-CEP-GADCCC-2026-001') {
-      return 'https://www.compraspublicas.gob.ec/ProcesoContratacion/compras/PC/informacionProcesoContratacion2.cpe?idSoliCompra=hyoblQeLSGRWn3sL2Upk1gRH-k-3SJK1CrqpRRJSz5k,';
-    }
-    if (norm === 'LICO-GADCCC-2025-003') {
-      return 'https://www.compraspublicas.gob.ec/ProcesoContratacion/compras/PC/informacionProcesoContratacion2.cpe?idSoliCompra=U-qSfLiSaTNwOpTVX0Rv77fYwSfQZNPMnR2pyFBvcj4,';
-    }
-    return `https://www.compraspublicas.gob.ec/ProcesoContratacion/compras/PC/informacionProcesoContratacion2.cpe?idSoliCompra=${encodeURIComponent(codigo)}`;
+  const KNOWN_LINKS: Record<string, string> = {
+    'RE-CEP-GADCCC-2026-001': 'https://www.compraspublicas.gob.ec/ProcesoContratacion/compras/PC/informacionProcesoContratacion2.cpe?idSoliCompra=hyoblQeLSGRWn3sL2Upk1gRH-k-3SJK1CrqpRRJSz5k',
+    'LICO-GADCCC-2025-003': 'https://www.compraspublicas.gob.ec/ProcesoContratacion/compras/PC/informacionProcesoContratacion2.cpe?idSoliCompra=U-qSfLiSaTNwOpTVX0Rv77fYwSfQZNPMnR2pyFBvcj4',
+  };
+
+  const normalizeCodigo = (codigo: string): string => {
+    return codigo.replace(/\s+/g, '').toUpperCase().replace('RE-CEPGADCCC', 'RE-CEP-GADCCC');
+  };
+
+  const getProcesoLink = (codigo: string): string | null => {
+    if (!codigo) return null;
+    const norm = normalizeCodigo(codigo);
+    return KNOWN_LINKS[norm] || null;
   };
 
   const copyLink = async (codigo: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     const url = getProcesoLink(codigo);
     if (!url) {
-      setError('No hay código de proceso para generar el link');
+      setError('Este proceso no tiene link disponible en Compras Públicas');
+      setTimeout(() => setError(''), 2800);
       return;
     }
     const showOk = () => {
@@ -128,7 +132,6 @@ export default function ProcesosAdministradoresPage() {
       setSuccess(`Link copiado: ${url}`);
       setTimeout(() => setSuccess(''), 2800);
     };
-    // Intento 1: Clipboard API (requiere HTTPS / localhost)
     try {
       if (navigator.clipboard && window.isSecureContext) {
         await navigator.clipboard.writeText(url);
@@ -137,7 +140,6 @@ export default function ProcesosAdministradoresPage() {
       }
       throw new Error('clipboard no disponible');
     } catch {
-      // Fallback: textarea + execCommand
       try {
         const ta = document.createElement('textarea');
         ta.value = url;
@@ -153,8 +155,8 @@ export default function ProcesosAdministradoresPage() {
         document.body.removeChild(ta);
         if (!ok) throw new Error('execCommand falló');
         showOk();
-      } catch (err: any) {
-        setError(`No se pudo copiar automáticamente. Copie manualmente: ${url}`);
+      } catch {
+        setError(`No se pudo copiar. Copie manualmente: ${url}`);
       }
     }
   };
@@ -304,29 +306,35 @@ export default function ProcesosAdministradoresPage() {
                                   ) : '-'}
                                 </td>
                                 <td style={{ padding: '8px 6px', fontSize: 12, maxWidth: 180 }}>
-                                  {proc.codigo_proceso ? (
-                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                                      <a
-                                        href={getProcesoLink(proc.codigo_proceso)}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        title={getProcesoLink(proc.codigo_proceso)}
-                                        style={{ color: 'var(--primary)', display: 'inline-flex', alignItems: 'center', gap: 4, textDecoration: 'none', fontWeight: 500 }}
-                                      >
-                                        <LinkIcon size={12} /> {proc.codigo_proceso}
-                                      </a>
-                                      <button
-                                        className="btn-icon"
-                                        onClick={(e) => copyLink(proc.codigo_proceso, e)}
-                                        title="Copiar link"
-                                        style={{ padding: 4, border: '1px solid var(--border)', borderRadius: 4 }}
-                                      >
-                                        <Copy size={12} />
-                                      </button>
-                                    </span>
-                                  ) : (
-                                    <span style={{ color: 'var(--text-muted)' }} title={proc.filename || ''}>{proc.filename || '-'}</span>
-                                  )}
+                                  {(() => {
+                                    const link = getProcesoLink(proc.codigo_proceso);
+                                    if (link) {
+                                      return (
+                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                                          <a
+                                            href={link}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            title={link}
+                                            style={{ color: 'var(--primary)', display: 'inline-flex', alignItems: 'center', gap: 4, textDecoration: 'none', fontWeight: 500 }}
+                                          >
+                                            <LinkIcon size={12} /> {proc.codigo_proceso}
+                                          </a>
+                                          <button
+                                            className="btn-icon"
+                                            onClick={(e) => copyLink(proc.codigo_proceso, e)}
+                                            title="Copiar link"
+                                            style={{ padding: 4, border: '1px solid var(--border)', borderRadius: 4 }}
+                                          >
+                                            <Copy size={12} />
+                                          </button>
+                                        </span>
+                                      );
+                                    }
+                                    return (
+                                      <span style={{ color: 'var(--text-muted)' }} title={proc.filename || ''}>{proc.codigo_proceso || proc.filename || '-'}</span>
+                                    );
+                                  })()}
                                 </td>
                                 <td style={{ padding: '8px 6px', fontSize: 12, whiteSpace: 'nowrap' }}>
                                   {proc.fecha_publicacion || (proc.fecha_procesamiento ? new Date(proc.fecha_procesamiento).toLocaleDateString() : '-')}
