@@ -7,6 +7,7 @@ import re
 import hmac
 import logging
 import secrets
+import gzip
 from datetime import datetime as dt
 from collections import defaultdict
 from contextlib import asynccontextmanager
@@ -176,6 +177,64 @@ class CORSAndSecurityMiddleware:
 
         await self.app(scope, receive, send_with_headers)
 
+class StaticOptimizationMiddleware:
+    """GZip compression + cache headers for static assets."""
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        path = scope.get("path", "")
+        accept_encoding = b""
+        headers = dict(scope.get("headers", []))
+        accept_encoding = headers.get(b"accept-encoding", b"")
+
+        is_asset = path.startswith("/assets/")
+        is_html = path == "/" or path == "" or not "." in path.split("/")[-1]
+
+        async def send_with_optimization(message):
+            if message["type"] != "http.response.start":
+                await send(message)
+                return
+
+            h = list(message.get("headers", []))
+            status = message.get("status", 200)
+
+            if is_asset and status == 200:
+                # Cache immutable assets (hashed filenames) for 1 year
+                h.append((b"cache-control", b"public, max-age=31536000, immutable"))
+                h.append((b"x-content-type-options", b"nosniff"))
+
+                # GZip compression for text-based assets
+                if b"gzip" in accept_encoding:
+                    body = message.get("body", b"")
+                    content_type = dict(h).get(b"content-type", b"")
+                    can_compress = any(t in content_type for t in [
+                        b"application/javascript", b"text/css", b"text/html",
+                        b"application/json", b"image/svg+xml",
+                    ])
+                    if can_compress and body and len(body) > 200:
+                        compressed = gzip.compress(body, compresslevel=6)
+                        if len(compressed) < len(body):
+                            h = [(k, v) for k, v in h if k != b"content-length"]
+                            h.append((b"content-encoding", b"gzip"))
+                            h.append((b"content-length", str(len(compressed)).encode()))
+                            message = dict(message)
+                            message["headers"] = h
+                            message["body"] = compressed
+
+            elif is_html and status == 200:
+                # HTML: no cache, always revalidate
+                h.append((b"cache-control", b"no-cache, must-revalidate"))
+
+            message["headers"] = h
+            await send(message)
+
+        await self.app(scope, receive, send_with_optimization)
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
@@ -191,6 +250,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title=settings.APP_NAME, version=settings.VERSION, lifespan=lifespan)
 
 app.add_middleware(CORSAndSecurityMiddleware)
+app.add_middleware(StaticOptimizationMiddleware)
 
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception):

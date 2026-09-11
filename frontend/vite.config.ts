@@ -28,5 +28,16 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom'],
+          'vendor-icons': ['lucide-react'],
+          'vendor-xlsx': ['xlsx'],
+        },
+      },
+    },
+    cssCodeSplit: true,
+    target: 'es2020',
   },
 });

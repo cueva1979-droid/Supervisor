@@ -1,6 +1,7 @@
-import { type ReactNode } from 'react';
+import { type ReactNode, lazy, Suspense } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import LoginPage from '../pages/LoginPage';
+
+const LoginPage = lazy(() => import('../pages/LoginPage'));
 
 interface Props {
   children: ReactNode;
@@ -19,7 +20,11 @@ export default function ProtectedRoute({ children, requiredRole }: Props) {
   }
 
   if (!isAuth) {
-    return <LoginPage />;
+    return (
+      <Suspense fallback={null}>
+        <LoginPage />
+      </Suspense>
+    );
   }
 
   if (requiredRole && user && !requiredRole.includes(user.role)) {

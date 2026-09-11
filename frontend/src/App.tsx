@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import {
   LayoutDashboard, FileUp, Users, History, Settings, Sun, Moon,
   FileText, Menu, X, BarChart3, ChevronDown, ChevronRight,
@@ -8,34 +8,35 @@ import {
 import { useTheme } from './hooks/useTheme';
 import { useAuth, AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
-import LoginPage from './pages/LoginPage';
-import Dashboard from './pages/Dashboard';
-import Process from './pages/Process';
-import ProvidersPage from './pages/ProvidersPage';
-import HistoryPage from './pages/HistoryPage';
-import ConfigPage from './pages/ConfigPage';
-import ReportsPage from './pages/ReportsPage';
-import AdministradoresPage from './pages/AdministradoresPage';
-import ProductosPage from './pages/ProductosPage';
-import PACDashboard from './pages/pac/PACDashboard';
-import PACUpload from './pages/pac/PACUpload';
-import PACDataTable from './pages/pac/PACDataTable';
-import PACAnalisis from './pages/pac/PACAnalisis';
-import PACCertDashboard from './pages/pac/PACCertDashboard';
-import PACCertGenerate from './pages/pac/PACCertGenerate';
-import PACCertManual from './pages/pac/PACCertManual';
-import PACVerificacion from './pages/pac/PACVerificacion';
-import PACCPCDashboard from './pages/pac/PACCPCDashboard';
-import PACCPCBuscador from './pages/pac/PACCPCBuscador';
-import CEDashboard from './pages/ce/CEDashboard';
-import CEUpload from './pages/ce/CEUpload';
-import CEDataView from './pages/ce/CEDataView';
-import CEAdmin from './pages/ce/CEAdmin';
-import ProcesosPanel from './pages/ProcesosPanel';
-import ProcesosListado from './pages/ProcesosListado';
-import ProcesosAdministradoresPage from './pages/ProcesosAdministradoresPage';
-import UsersPage from './pages/UsersPage';
 import './styles/global.css';
+
+const LoginPage = lazy(() => import('./pages/LoginPage'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Process = lazy(() => import('./pages/Process'));
+const ProvidersPage = lazy(() => import('./pages/ProvidersPage'));
+const HistoryPage = lazy(() => import('./pages/HistoryPage'));
+const ConfigPage = lazy(() => import('./pages/ConfigPage'));
+const ReportsPage = lazy(() => import('./pages/ReportsPage'));
+const AdministradoresPage = lazy(() => import('./pages/AdministradoresPage'));
+const ProductosPage = lazy(() => import('./pages/ProductosPage'));
+const UsersPage = lazy(() => import('./pages/UsersPage'));
+const ProcesosPanel = lazy(() => import('./pages/ProcesosPanel'));
+const ProcesosListado = lazy(() => import('./pages/ProcesosListado'));
+const ProcesosAdministradoresPage = lazy(() => import('./pages/ProcesosAdministradoresPage'));
+const PACDashboard = lazy(() => import('./pages/pac/PACDashboard'));
+const PACUpload = lazy(() => import('./pages/pac/PACUpload'));
+const PACDataTable = lazy(() => import('./pages/pac/PACDataTable'));
+const PACAnalisis = lazy(() => import('./pages/pac/PACAnalisis'));
+const PACCertDashboard = lazy(() => import('./pages/pac/PACCertDashboard'));
+const PACCertGenerate = lazy(() => import('./pages/pac/PACCertGenerate'));
+const PACCertManual = lazy(() => import('./pages/pac/PACCertManual'));
+const PACVerificacion = lazy(() => import('./pages/pac/PACVerificacion'));
+const PACCPCDashboard = lazy(() => import('./pages/pac/PACCPCDashboard'));
+const PACCPCBuscador = lazy(() => import('./pages/pac/PACCPCBuscador'));
+const CEDashboard = lazy(() => import('./pages/ce/CEDashboard'));
+const CEUpload = lazy(() => import('./pages/ce/CEUpload'));
+const CEDataView = lazy(() => import('./pages/ce/CEDataView'));
+const CEAdmin = lazy(() => import('./pages/ce/CEAdmin'));
 
 type Page = 'dashboard' | 'config' | 'users'
   | 'pac-dashboard' | 'pac-upload' | 'pac-table' | 'pac-analisis'
@@ -196,6 +197,18 @@ function AppContent() {
     }
   };
 
+  const PageLoader = () => (
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}>
+      <div style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>
+        <div style={{
+          width: 32, height: 32, border: '3px solid var(--border)', borderTopColor: 'var(--primary)',
+          borderRadius: '50%', animation: 'spin 0.6s linear infinite', margin: '0 auto 12px'
+        }} />
+        <span style={{ fontSize: 14 }}>Cargando...</span>
+      </div>
+    </div>
+  );
+
   const handleNav = (id: Page) => {
     setPage(id);
     setSidebarOpen(false);
@@ -207,7 +220,11 @@ function AppContent() {
   };
 
   if (!isAuth) {
-    return <LoginPage />;
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <LoginPage />
+      </Suspense>
+    );
   }
 
   const pageTitle = pageTitles[page] || 'SupervisorPRO';
@@ -314,7 +331,9 @@ function AppContent() {
           </div>
         </nav>
         <main className="page-content">
-          {renderPage()}
+          <Suspense fallback={<PageLoader />}>
+            {renderPage()}
+          </Suspense>
         </main>
       </div>
     </div>
