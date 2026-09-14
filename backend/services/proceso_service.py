@@ -78,10 +78,16 @@ def _parse_process_block(codigo: str, objeto_line: str, objeto_extra: str, block
         return None
     
     # Extract estado del proceso
+    # Handle encoding issues: Ejecuci?n, Desierta, Adjudicada, etc.
     estado = ""
-    estado_match = re.search(r'\b(Desierta|Adjudicada|Ejecuci[oó]n de Contrato|Finalizada|Publicada|Suspendida|Recepci[oó]n|En curso|Cancelada)\b', block, re.IGNORECASE)
+    estado_match = re.search(r'\b(Desierta|Adjudicada|Ejecuci\S*\s*(?:de\s+Contrato)?|Finalizada|Publicada|Suspendida|Recepci\S*\s*(?:de\s+)?|En\s+curso|Cancelada)\b', block, re.IGNORECASE)
     if estado_match:
-        estado = _fix_encoding(estado_match.group(1))
+        raw = estado_match.group(1).strip()
+        # Normalize before _fix_encoding removes replacement chars
+        raw = re.sub(r'Ejecuci\S*n', 'Ejecución', raw)
+        raw = re.sub(r'Ejecuci\S*n\s*de\s*Contrato', 'Ejecución de Contrato', raw)
+        raw = re.sub(r'Recepci\S*n', 'Recepción', raw)
+        estado = _fix_encoding(raw)
     
     # Extract presupuesto referencial
     presupuesto = None
