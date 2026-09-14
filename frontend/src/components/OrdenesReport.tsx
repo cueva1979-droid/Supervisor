@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Search, FileText } from 'lucide-react';
+import { Search, ArrowUp, ArrowDown } from 'lucide-react';
 
 interface OrdenItem {
   numero_orden: string;
@@ -10,6 +10,8 @@ interface OrdenItem {
   administrador: string;
 }
 
+type SortField = 'numero_orden' | 'objeto_contratacion' | 'fecha' | 'plazo_entrega' | 'proveedor' | 'administrador' | null;
+
 export default function OrdenesReport() {
   const [items, setItems] = useState<OrdenItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -17,6 +19,8 @@ export default function OrdenesReport() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+  const [sortBy, setSortBy] = useState<SortField>(null);
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const perPage = 50;
 
   const load = useCallback(async (p: number) => {
@@ -24,6 +28,10 @@ export default function OrdenesReport() {
     try {
       const params = new URLSearchParams({ page: String(p), per_page: String(perPage) });
       if (search) params.set('search', search);
+      if (sortBy) {
+        params.set('sort_by', sortBy);
+        params.set('sort_dir', sortDir);
+      }
       const res = await fetch(`/reports/ordenes?${params}`, { credentials: 'include' });
       const data = await res.json();
       setItems(data.items);
@@ -33,7 +41,21 @@ export default function OrdenesReport() {
     } catch { } finally {
       setLoading(false);
     }
-  }, [search]);
+  }, [search, sortBy, sortDir]);
+
+  const handleSort = (field: SortField) => {
+    if (sortBy === field) {
+      setSortDir(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(field);
+      setSortDir('asc');
+    }
+  };
+
+  const SortIcon = ({ field }: { field: SortField }) => {
+    if (sortBy !== field) return null;
+    return sortDir === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />;
+  };
 
   useEffect(() => { load(1); }, [load]);
 
@@ -62,12 +84,12 @@ export default function OrdenesReport() {
           <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr>
-                <th style={{ padding: '10px 8px' }}>Nro. Orden</th>
-                <th style={{ padding: '10px 8px' }}>Objeto</th>
-                <th style={{ padding: '10px 8px' }}>Fecha</th>
-                <th style={{ padding: '10px 8px' }}>Plazo de Entrega</th>
-                <th style={{ padding: '10px 8px' }}>Proveedor</th>
-                <th style={{ padding: '10px 8px' }}>Administrador</th>
+                <th style={{ padding: '10px 8px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('numero_orden')}>Nro. Orden <SortIcon field="numero_orden" /></th>
+                <th style={{ padding: '10px 8px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('objeto_contratacion')}>Objeto <SortIcon field="objeto_contratacion" /></th>
+                <th style={{ padding: '10px 8px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('fecha')}>Fecha <SortIcon field="fecha" /></th>
+                <th style={{ padding: '10px 8px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('plazo_entrega')}>Plazo de Entrega <SortIcon field="plazo_entrega" /></th>
+                <th style={{ padding: '10px 8px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('proveedor')}>Proveedor <SortIcon field="proveedor" /></th>
+                <th style={{ padding: '10px 8px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('administrador')}>Administrador <SortIcon field="administrador" /></th>
               </tr>
             </thead>
             <tbody>

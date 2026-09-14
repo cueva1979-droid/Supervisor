@@ -758,6 +758,8 @@ def report_ordenes(
     search: Optional[str] = Query(None),
     page: int = Query(1, ge=1),
     per_page: int = Query(50, ge=1, le=200),
+    sort_by: Optional[str] = Query(None),
+    sort_dir: Optional[str] = Query("asc"),
     user: User = Depends(require_auth),
     db: Session = Depends(get_db)
 ):
@@ -771,7 +773,20 @@ def report_ordenes(
             Record.administrador.ilike(term)
         )
     total = query.count()
-    results = query.order_by(Record.fecha_procesamiento.desc()).offset((page - 1) * per_page).limit(per_page).all()
+    sort_column_map = {
+        "numero_orden": Record.numero_orden,
+        "objeto_contratacion": Record.objeto_contratacion,
+        "fecha": Record.fecha,
+        "plazo_entrega": Record.plazo_entrega,
+        "proveedor": Record.proveedor,
+        "administrador": Record.administrador,
+    }
+    if sort_by and sort_by in sort_column_map:
+        col = sort_column_map[sort_by]
+        query = query.order_by(col.asc() if sort_dir == "asc" else col.desc())
+    else:
+        query = query.order_by(Record.fecha_procesamiento.desc())
+    results = query.offset((page - 1) * per_page).limit(per_page).all()
     items = []
     for r in results:
         items.append({
