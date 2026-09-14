@@ -1697,6 +1697,66 @@ def procesos_export_excel_by_admin(admin_name: str = Query(...), user: User = De
         raise HTTPException(status_code=500, detail="No se pudo exportar el archivo.")
 
 
+# ==================== Procesos de Contratación ====================
+
+from services.proceso_service import (
+    process_proceso_pdf, list_procesos, get_proceso, 
+    delete_proceso, delete_all_procesos
+)
+
+@app.post("/procesos/extract")
+async def procesos_extract(file: UploadFile = File(...), user: User = Depends(require_role("admin", "operator")), db: Session = Depends(get_db)):
+    filename = sanitize_filename(file.filename or "")
+    if not filename.lower().endswith('.pdf'):
+        raise HTTPException(status_code=400, detail="Solo se aceptan archivos PDF")
+
+    upload_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "uploads")
+    os.makedirs(upload_dir, exist_ok=True)
+    filepath = os.path.join(upload_dir, f"proceso_{uuid.uuid4().hex}_{filename}")
+    content = await file.read()
+    with open(filepath, "wb") as f:
+        f.write(content)
+
+    try:
+        result = process_proceso_pdf(filepath, filename, db)
+        db.commit()
+        log_audit(user.id, "UPLOAD", "procesos_contratacion", details=f"Archivo: {filename}", db=db)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    except Exception as e:
+        logger.exception("Error al procesar PDF de proceso")
+        raise HTTPException(status_code=422, detail="No se pudo procesar el PDF.")
+
+
+@app.get("/procesos/list")
+def procesos_list(user: User = Depends(require_module("cam")), db: Session = Depends(get_db)):
+    return list_procesos(db)
+
+
+@app.get("/procesos/{proceso_id}")
+def procesos_get(proceso_id: str, user: User = Depends(require_module("cam")), db: Session = Depends(get_db)):
+    proc = get_proceso(proceso_id, db)
+    if not proc:
+        raise HTTPException(status_code=404, detail="Proceso no encontrado")
+    return proc
+
+
+@app.delete("/procesos/{proceso_id}")
+def procesos_delete(proceso_id: str, user: User = Depends(require_role("admin")), db: Session = Depends(get_db)):
+    if delete_proceso(proceso_id, db):
+        log_audit(user.id, "DELETE", "procesos_contratacion", resource_id=proceso_id, db=db)
+        return {"status": "ok", "message": "Proceso eliminado"}
+    raise HTTPException(status_code=404, detail="Proceso no encontrado")
+
+
+@app.delete("/procesos/all")
+def procesos_delete_all(user: User = Depends(require_role("admin")), db: Session = Depends(get_db)):
+    count = delete_all_procesos(db)
+    log_audit(user.id, "DELETE", "procesos_contratacion", details=f"Eliminados: {count}", db=db)
+    return {"status": "ok", "deleted": count}
+
+
 # ==================== Frontend SPA (single-deploy) ====================
 # Serve the built React app when frontend/dist exists. Must be declared
 # after all API routes so that /api routes win and SPA deep links fall

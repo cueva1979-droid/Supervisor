@@ -23,6 +23,7 @@ const UsersPage = lazy(() => import('./pages/UsersPage'));
 const ProcesosPanel = lazy(() => import('./pages/ProcesosPanel'));
 const ProcesosListado = lazy(() => import('./pages/ProcesosListado'));
 const ProcesosAdministradoresPage = lazy(() => import('./pages/ProcesosAdministradoresPage'));
+const ProcesosContratacion = lazy(() => import('./pages/ProcesosContratacion'));
 const PACDashboard = lazy(() => import('./pages/pac/PACDashboard'));
 const PACUpload = lazy(() => import('./pages/pac/PACUpload'));
 const PACDataTable = lazy(() => import('./pages/pac/PACDataTable'));
@@ -44,7 +45,7 @@ type Page = 'dashboard' | 'config' | 'users'
   | 'pac-cpc' | 'pac-cpc-buscador' | 'pac-cpc-verificacion'
   | 'infima-cuantia' | 'process' | 'providers' | 'administradores' | 'reports' | 'history' | 'productos'
   | 'ce-dashboard' | 'ce-upload' | 'ce-table' | 'ce-export' | 'ce-admin'
-  | 'procesos-panel' | 'procesos-listado' | 'procesos-cam-extract' | 'procesos-administradores';
+  | 'procesos-panel' | 'procesos-listado' | 'procesos-cam-extract' | 'procesos-administradores' | 'procesos-contratacion';
 
 interface NavItem {
   id: Page;
@@ -93,6 +94,7 @@ const navItems: (NavItem & { children?: NavItem[] })[] = [
         children: [
           { id: 'procesos-panel', label: 'Panel Procesos', icon: LayoutDashboard, parent: 'procesos' },
           { id: 'procesos-listado', label: 'Listado', icon: List, parent: 'procesos' },
+          { id: 'procesos-contratacion', label: 'Procesos', icon: FileText, parent: 'procesos' },
           { id: 'procesos-administradores', label: 'Administradores', icon: Users, parent: 'procesos' },
           { id: 'procesos-cam-extract', label: 'CAM - Extraer Datos', icon: Upload, parent: 'procesos' },
         ]
@@ -130,6 +132,7 @@ const pageTitles: Record<string, string> = {
   'ce-admin': 'CE - Administrador Orden',
   'procesos-panel': 'Procesos - Panel Principal',
   'procesos-listado': 'Procesos - Listado',
+  'procesos-contratacion': 'Procesos de Contratación',
   'procesos-administradores': 'Procesos - Administradores',
   'procesos-cam-extract': 'CAM - Extraer Datos',
 };
@@ -191,6 +194,7 @@ function AppContent() {
       // Procesos pages
       case 'procesos-panel': return <ProcesosPanel onNavigate={(p) => setPage(p as Page)} />;
       case 'procesos-listado': return <ProcesosListado />;
+      case 'procesos-contratacion': return <ProcesosContratacion />;
       case 'procesos-administradores': return <ProcesosAdministradoresPage />;
       case 'procesos-cam-extract': return <ProcesosListado />;
       default: return <Dashboard />;

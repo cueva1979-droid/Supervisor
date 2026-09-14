@@ -139,6 +139,19 @@ class CAMExtraction(Base):
     fecha_procesamiento = Column(String(50), default=lambda: datetime.datetime.utcnow().isoformat())
     soli_compra_token = Column(String(255), nullable=True)
 
+# ==================== Procesos de Contratación Model ====================
+
+class ProcesoContratacion(Base):
+    __tablename__ = "procesos_contratacion"
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    filename = Column(String(255), nullable=True)
+    codigo = Column(String(100), nullable=True)
+    objeto_proceso = Column(Text, nullable=True)
+    estado_proceso = Column(String(100), nullable=True)
+    presupuesto_referencial = Column(Float, nullable=True)
+    fecha_publicacion = Column(String(20), nullable=True)
+    fecha_procesamiento = Column(String(50), default=lambda: datetime.datetime.utcnow().isoformat())
+
 # ==================== Security Models ====================
 
 class User(Base):
