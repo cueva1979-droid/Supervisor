@@ -1704,7 +1704,7 @@ from services.proceso_service import (
     delete_proceso, delete_all_procesos
 )
 
-@app.post("/procesos/extract")
+@app.post("/procesos-contratacion/extract")
 async def procesos_extract(file: UploadFile = File(...), user: User = Depends(require_role("admin", "operator")), db: Session = Depends(get_db)):
     filename = sanitize_filename(file.filename or "")
     if not filename.lower().endswith('.pdf'):
@@ -1730,12 +1730,12 @@ async def procesos_extract(file: UploadFile = File(...), user: User = Depends(re
         raise HTTPException(status_code=422, detail=f"Error al procesar el PDF: {str(e)}")
 
 
-@app.get("/procesos/list")
+@app.get("/procesos-contratacion/list")
 def procesos_list(user: User = Depends(require_auth), db: Session = Depends(get_db)):
     return list_procesos(db)
 
 
-@app.get("/procesos/{proceso_id}")
+@app.get("/procesos-contratacion/{proceso_id}")
 def procesos_get(proceso_id: str, user: User = Depends(require_auth), db: Session = Depends(get_db)):
     proc = get_proceso(proceso_id, db)
     if not proc:
@@ -1743,7 +1743,7 @@ def procesos_get(proceso_id: str, user: User = Depends(require_auth), db: Sessio
     return proc
 
 
-@app.delete("/procesos/{proceso_id}")
+@app.delete("/procesos-contratacion/{proceso_id}")
 def procesos_delete(proceso_id: str, user: User = Depends(require_role("admin")), db: Session = Depends(get_db)):
     if delete_proceso(proceso_id, db):
         log_audit(user.id, "DELETE", "procesos_contratacion", resource_id=proceso_id, db=db)
@@ -1751,7 +1751,7 @@ def procesos_delete(proceso_id: str, user: User = Depends(require_role("admin"))
     raise HTTPException(status_code=404, detail="Proceso no encontrado")
 
 
-@app.delete("/procesos/all")
+@app.delete("/procesos-contratacion-all")
 def procesos_delete_all(user: User = Depends(require_role("admin")), db: Session = Depends(get_db)):
     count = delete_all_procesos(db)
     log_audit(user.id, "DELETE", "procesos_contratacion", details=f"Eliminados: {count}", db=db)

@@ -38,7 +38,7 @@ export default function ProcesosContratacion() {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(`${API_BASE}/procesos/list`, {
+      const res = await fetch(`${API_BASE}/procesos-contratacion/list`, {
         credentials: 'include',
       });
       if (!res.ok) throw new Error('Error al cargar procesos');
@@ -77,7 +77,7 @@ export default function ProcesosContratacion() {
     formData.append('file', selectedFile);
 
     try {
-      const res = await fetch(`${API_BASE}/procesos/extract`, {
+      const res = await fetch(`${API_BASE}/procesos-contratacion/extract`, {
         method: 'POST',
         credentials: 'include',
         headers: csrfHeaders('POST'),
@@ -100,7 +100,7 @@ export default function ProcesosContratacion() {
   const handleDelete = async (id: string) => {
     if (!confirm('¿Eliminar este proceso?')) return;
     try {
-      const res = await fetch(`${API_BASE}/procesos/${id}`, {
+      const res = await fetch(`${API_BASE}/procesos-contratacion/${id}`, {
         method: 'DELETE',
         credentials: 'include',
         headers: csrfHeaders('DELETE'),
@@ -116,7 +116,7 @@ export default function ProcesosContratacion() {
   const handleDeleteAll = async () => {
     if (!confirm('¿Eliminar todos los procesos? Esta acción no se puede deshacer.')) return;
     try {
-      const res = await fetch(`${API_BASE}/procesos/all`, {
+      const res = await fetch(`${API_BASE}/procesos-contratacion-all`, {
         method: 'DELETE',
         credentials: 'include',
         headers: csrfHeaders('DELETE'),
