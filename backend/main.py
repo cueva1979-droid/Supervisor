@@ -1184,9 +1184,11 @@ def pac_period_analysis(user: User = Depends(require_module("pac")), db: Session
 @app.get("/pac/analysis/periods/excel")
 def pac_period_analysis_excel(user: User = Depends(require_module("pac")), db: Session = Depends(get_db)):
     try:
+        import io
         from openpyxl import Workbook
         from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
         from openpyxl.utils import get_column_letter
+        from starlette.responses import StreamingResponse
 
         docs = db.query(PACDocument).order_by(PACDocument.periodo).all()
         current_month = dt.now().month
@@ -1247,12 +1249,13 @@ def pac_period_analysis_excel(user: User = Depends(require_module("pac")), db: S
         ws.column_dimensions["H"].width = 18
         ws.column_dimensions["I"].width = 18
 
-        filepath = os.path.join(UPLOAD_DIR, "pac_analysis_periods.xlsx")
-        wb.save(filepath)
-        return FileResponse(
-            filepath,
+        buffer = io.BytesIO()
+        wb.save(buffer)
+        buffer.seek(0)
+        return StreamingResponse(
+            buffer,
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            filename="PAC_Analisis_Periodos.xlsx"
+            headers={"Content-Disposition": "attachment; filename=PAC_Analisis_Periodos.xlsx"}
         )
     except Exception as e:
         logger.exception("Error al generar Excel de analisis PAC")
