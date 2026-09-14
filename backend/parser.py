@@ -633,11 +633,46 @@ class DocumentParser:
                     return self._parse_number(nums[-1])
         return 0.0
 
+    def extract_telefono(self) -> Optional[str]:
+        text = self.extract_text()
+        phone_pattern = r'[\+]?[\d\s\-\(\)]{7,20}'
+        if self.tables:
+            for table in self.tables:
+                for row in table:
+                    for i, cell in enumerate(row):
+                        if cell and isinstance(cell, str):
+                            upper = cell.upper()
+                            if 'TEL[EÉ]FONO' in upper or 'TEL:' in upper or 'CELULAR' in upper or 'CONTACTO' in upper:
+                                m = re.search(r'(?:TEL[EÉ]FONO|TEL:|CELULAR|CONTACTO)\s*[:#]?\s*(' + phone_pattern + r')', cell, re.IGNORECASE)
+                                if m:
+                                    phone = m.group(1).strip()
+                                    phone = re.sub(r'\s+', ' ', phone)
+                                    if len(phone) >= 7:
+                                        return phone
+                                if i + 1 < len(row) and row[i + 1]:
+                                    next_cell = row[i + 1].strip()
+                                    if re.match(r'^[\d\s\-\(\)\+]+$', next_cell) and len(next_cell) >= 7:
+                                        return next_cell
+        patterns = [
+            r'TEL[EÉ]FONO\s*(?:DEL?\s*(?:PROVEEDOR|CONTRATISTA|GANADOR))?\s*[:#]?\s*(' + phone_pattern + r')',
+            r'(?:CELULAR|CONT[AÁ]CTO)\s*(?:DEL?\s*(?:PROVEEDOR|CONTRATISTA))?\s*[:#]?\s*(' + phone_pattern + r')',
+            r'TEL\s*[:#]\s*(' + phone_pattern + r')',
+        ]
+        for p in patterns:
+            m = re.search(p, text, re.IGNORECASE)
+            if m:
+                phone = m.group(1).strip()
+                phone = re.sub(r'\s+', ' ', phone)
+                if len(phone) >= 7:
+                    return phone
+        return None
+
     def get_all_data(self) -> Dict:
         items = self.extract_items()
         return {
             "proveedor": self.extract_proveedor() or "requiere revisión",
             "ruc": self.extract_ruc() or "requiere revisión",
+            "telefono": self.extract_telefono(),
             "codigo_proceso": self.extract_codigo_proceso() or "requiere revisión",
             "numero_orden": self.extract_numero_orden() or "requiere revisión",
             "fecha": self.extract_fecha() or "requiere revisión",

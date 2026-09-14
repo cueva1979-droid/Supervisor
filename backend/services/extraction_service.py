@@ -51,6 +51,7 @@ def process_document(filepath: str, filename: str, db: Session) -> Record:
 
     proveedor = data.get("proveedor", "requiere revisión")
     ruc = data.get("ruc", "requiere revisión")
+    telefono = data.get("telefono")
 
     provider = None
     if ruc and ruc != "requiere revisión":
@@ -61,11 +62,14 @@ def process_document(filepath: str, filename: str, db: Session) -> Record:
         provider = Provider(
             nombre=proveedor if proveedor != "requiere revisión" else f"Proveedor {filename}",
             ruc=ruc if ruc != "requiere revisión" else "00000000-0",
+            telefono=telefono,
             codigo_proceso=data.get("codigo_proceso", ""),
             observaciones=f"Autocreado desde {filename}",
         )
         db.add(provider)
         db.flush()
+    elif telefono and not provider.telefono:
+        provider.telefono = telefono
 
     record = Record(
         filename=filename,
