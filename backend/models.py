@@ -149,7 +149,7 @@ class ProcesoContratacion(Base):
     objeto_proceso = Column(Text, nullable=True)
     estado_proceso = Column(String(100), nullable=True)
     presupuesto_referencial = Column(Float, nullable=True)
-    fecha_publicacion = Column(String(20), nullable=True)
+    fecha_publicacion = Column(String(100), nullable=True)
     fecha_procesamiento = Column(String(50), default=lambda: datetime.datetime.utcnow().isoformat())
 
 # ==================== Security Models ====================

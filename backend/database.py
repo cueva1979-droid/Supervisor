@@ -82,6 +82,17 @@ def init_db():
             conn.commit()
         except Exception:
             pass
+    # Migración: procesos_contratacion - fecha_publicacion VARCHAR(20) -> VARCHAR(100)
+    with engine.connect() as conn:
+        try:
+            if not DB_IS_SQLITE:
+                conn.execute(text("ALTER TABLE procesos_contratacion ALTER COLUMN fecha_publicacion TYPE VARCHAR(100)"))
+                conn.commit()
+            else:
+                conn.execute(text("ALTER TABLE procesos_contratacion ADD COLUMN fecha_publicacion VARCHAR(100)"))
+                conn.commit()
+        except Exception:
+            pass
     # Migrar moneda PYG -> USD
     with engine.connect() as conn:
         try:
