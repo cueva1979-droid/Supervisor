@@ -26,7 +26,7 @@ from database import init_db, get_db, SessionLocal, create_default_admin
 from models import (
     Record, Item, Provider, Base, PACDocument, PACCertificate,
     CPCCatalog, CPCLoadedData, CEExtractionDB, CEItemDB, CAMExtraction,
-    User, AuditLog, LoginAttempt
+    ProcesoContratacion, User, AuditLog, LoginAttempt
 )
 from schemas import (
     RecordResponse, RecordCreate, RecordUpdate,
@@ -1723,19 +1723,20 @@ async def procesos_extract(file: UploadFile = File(...), user: User = Depends(re
         log_audit(user.id, "UPLOAD", "procesos_contratacion", details=f"Archivo: {filename}", db=db)
         return result
     except ValueError as e:
+        logger.warning(f"Error de validación al procesar proceso: {e}")
         raise HTTPException(status_code=409, detail=str(e))
     except Exception as e:
-        logger.exception("Error al procesar PDF de proceso")
-        raise HTTPException(status_code=422, detail="No se pudo procesar el PDF.")
+        logger.exception(f"Error al procesar PDF de proceso: {type(e).__name__}: {e}")
+        raise HTTPException(status_code=422, detail=f"Error al procesar el PDF: {str(e)}")
 
 
 @app.get("/procesos/list")
-def procesos_list(user: User = Depends(require_module("cam")), db: Session = Depends(get_db)):
+def procesos_list(user: User = Depends(require_auth), db: Session = Depends(get_db)):
     return list_procesos(db)
 
 
 @app.get("/procesos/{proceso_id}")
-def procesos_get(proceso_id: str, user: User = Depends(require_module("cam")), db: Session = Depends(get_db)):
+def procesos_get(proceso_id: str, user: User = Depends(require_auth), db: Session = Depends(get_db)):
     proc = get_proceso(proceso_id, db)
     if not proc:
         raise HTTPException(status_code=404, detail="Proceso no encontrado")
