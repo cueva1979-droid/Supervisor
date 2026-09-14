@@ -384,6 +384,13 @@ def process_cam_pdf(filepath: str, filename: str, db: Session) -> dict:
         soli_token = annotation_tokens[idx] if idx < len(annotation_tokens) else None
         existing = db.query(CAMExtraction).filter(CAMExtraction.codigo_proceso == pc).first()
         if existing:
+            # Validar que el proceso no tenga un administrador distinto
+            if admin and existing.administrador_contrato_actual and existing.administrador_contrato_actual.strip() != admin.strip():
+                raise ValueError(
+                    f"El proceso '{pc}' ya está asignado al administrador "
+                    f"'{existing.administrador_contrato_actual}'. "
+                    f"No puede tener dos administradores distintos."
+                )
             if admin:
                 existing.administrador_contrato_actual = admin
             if p.get("objeto"):
