@@ -61,8 +61,8 @@ const navItems: (NavItem & { children?: NavItem[] })[] = [
       { id: 'providers', label: 'Proveedores', icon: Users, parent: 'infima' },
       { id: 'administradores', label: 'Administradores', icon: Users, parent: 'infima' },
       { id: 'productos', label: 'Productos', icon: Package, parent: 'infima' },
-      { id: 'reports', label: 'Reportes', icon: BarChart3, parent: 'infima' },
       { id: 'history', label: 'Orden de Compra', icon: History, parent: 'infima' },
+      { id: 'reports', label: 'Reportes', icon: BarChart3, parent: 'infima' },
     ]
   },
   { id: 'pac-dashboard', label: 'Plan Anual de Contratación', icon: FileText,
