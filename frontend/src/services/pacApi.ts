@@ -45,6 +45,7 @@ export const pacAPI = {
   cleanDuplicates: () => request<any>('/pac/documents/clean-duplicates', { method: 'POST' }),
 
   getPeriodAnalysis: () => request<any[]>('/pac/analysis/periods'),
+  exportPeriodAnalysisExcel: () => `${API_BASE}/pac/analysis/periods/excel`,
 
   getCertificates: () => request<any[]>('/pac/certificates'),
   createCertificate: (data: any) => request<any>('/pac/certificates', {

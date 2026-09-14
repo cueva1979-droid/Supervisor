@@ -1181,6 +1181,84 @@ def pac_period_analysis(user: User = Depends(require_module("pac")), db: Session
     return result
 
 
+@app.get("/pac/analysis/periods/excel")
+def pac_period_analysis_excel(user: User = Depends(require_module("pac")), db: Session = Depends(get_db)):
+    try:
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+        from openpyxl.utils import get_column_letter
+
+        docs = db.query(PACDocument).order_by(PACDocument.periodo).all()
+        current_month = dt.now().month
+
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Analisis por Periodo"
+
+        headers = ["Archivo", "Partida Presupuestaria", "CPC", "Descripcion", "Costo Unitario", "Periodo", "Categoria", "Estado Periodo", "Estado Ejecucion"]
+        hf = PatternFill(start_color="1F4E79", end_color="1F4E79", fill_type="solid")
+        hfont = Font(bold=True, color="FFFFFF", size=11)
+        thin = Border(
+            left=Side(style="thin"), right=Side(style="thin"),
+            top=Side(style="thin"), bottom=Side(style="thin")
+        )
+
+        for col, h in enumerate(headers, 1):
+            c = ws.cell(row=1, column=col, value=h)
+            c.fill = hf
+            c.font = hfont
+            c.alignment = Alignment(horizontal="center")
+            c.border = thin
+
+        status_fills = {
+            "current": PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid"),
+            "past": PatternFill(start_color="FEE2E2", end_color="FEE2E2", fill_type="solid"),
+            "future": PatternFill(start_color="D1FAE5", end_color="D1FAE5", fill_type="solid"),
+        }
+        status_labels = {"current": "Periodo Actual", "past": "Periodo Vencido", "future": "Periodo Futuro"}
+
+        for i, doc in enumerate(docs, 2):
+            analysis = classify_period(doc.periodo, current_month)
+            status = analysis["status"]
+            row_data = [
+                doc.filename or "",
+                doc.partida_presupuestaria or "",
+                doc.cpc or "",
+                doc.descripcion or "",
+                doc.costo_unitario or 0,
+                doc.periodo or "",
+                analysis.get("periodCategory", ""),
+                status_labels.get(status, "Sin definir"),
+                getattr(doc, "estado_ejecucion", None) or "Pendiente",
+            ]
+            for col, val in enumerate(row_data, 1):
+                c = ws.cell(row=i, column=col, value=sanitize_excel(val))
+                c.border = thin
+                if col == 8 and status in status_fills:
+                    c.fill = status_fills[status]
+
+        ws.column_dimensions["A"].width = 35
+        ws.column_dimensions["B"].width = 20
+        ws.column_dimensions["C"].width = 15
+        ws.column_dimensions["D"].width = 50
+        ws.column_dimensions["E"].width = 15
+        ws.column_dimensions["F"].width = 15
+        ws.column_dimensions["G"].width = 15
+        ws.column_dimensions["H"].width = 18
+        ws.column_dimensions["I"].width = 18
+
+        filepath = os.path.join(UPLOAD_DIR, "pac_analysis_periods.xlsx")
+        wb.save(filepath)
+        return FileResponse(
+            filepath,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            filename="PAC_Analisis_Periodos.xlsx"
+        )
+    except Exception as e:
+        logger.exception("Error al generar Excel de analisis PAC")
+        raise HTTPException(status_code=500, detail="No se pudo generar el archivo Excel.")
+
+
 # Certificate endpoints
 
 @app.get("/pac/certificates")

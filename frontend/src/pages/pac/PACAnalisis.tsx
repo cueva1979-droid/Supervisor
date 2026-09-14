@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { CalendarDays, AlertTriangle, Clock, CheckCircle, Pencil, Save, Check, BarChart3, Search } from 'lucide-react';
+import { CalendarDays, AlertTriangle, Clock, CheckCircle, Pencil, Save, Check, BarChart3, Search, FileDown } from 'lucide-react';
 import { pacAPI } from '../../services/pacApi';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -246,10 +246,15 @@ export default function PACAnalisis() {
       </div>
 
       <div className="card">
-        <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-          Análisis de Documentos por Período
-          <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 4 }}><Pencil size={12} /> Editable</span>
-        </h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <h3 style={{ fontSize: 18, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8, margin: 0 }}>
+            Análisis de Documentos por Período
+            <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 4 }}><Pencil size={12} /> Editable</span>
+          </h3>
+          <a href={pacAPI.exportPeriodAnalysisExcel()} className="btn btn-success btn-sm" download style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <FileDown size={14} /> Exportar Excel
+          </a>
+        </div>
 
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16, alignItems: 'center' }}>
           <div style={{ position: 'relative' }}>
