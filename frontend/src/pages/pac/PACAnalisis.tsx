@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { CalendarDays, AlertTriangle, Clock, CheckCircle, Pencil, Save, Check, BarChart3 } from 'lucide-react';
+import { CalendarDays, AlertTriangle, Clock, CheckCircle, Pencil, Save, Check, BarChart3, Search } from 'lucide-react';
 import { pacAPI } from '../../services/pacApi';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -70,6 +70,11 @@ export default function PACAnalisis() {
   const [pending, setPending] = useState<Record<string, string>>({});
   const [savedId, setSavedId] = useState<string | null>(null);
   const [summary, setSummary] = useState({ current: 0, past: 0, future: 0, unknown: 0 });
+  const [filterArchivo, setFilterArchivo] = useState('');
+  const [filterPartida, setFilterPartida] = useState('');
+  const [filterPeriodo, setFilterPeriodo] = useState('');
+  const [filterEstadoPeriodo, setFilterEstadoPeriodo] = useState('');
+  const [filterEstadoEjecucion, setFilterEstadoEjecucion] = useState('');
 
   useEffect(() => {
     loadAnalysis();
@@ -132,6 +137,32 @@ export default function PACAnalisis() {
     const total = analysisData.length || 1;
     return { counts: c, total: analysisData.length, pct: (n: number) => ((n / total) * 100).toFixed(1) };
   }, [analysisData]);
+
+  const filteredData = useMemo(() => {
+    return analysisData.filter((doc: any) => {
+      if (filterArchivo && !(doc.filename || '').toLowerCase().includes(filterArchivo.toLowerCase())) return false;
+      if (filterPartida && !(doc.partida_presupuestaria || '').toLowerCase().includes(filterPartida.toLowerCase())) return false;
+      if (filterPeriodo && doc.periodo !== filterPeriodo) return false;
+      if (filterEstadoPeriodo && doc.status !== filterEstadoPeriodo) return false;
+      if (filterEstadoEjecucion && (doc.estado_ejecucion || 'Pendiente') !== filterEstadoEjecucion) return false;
+      return true;
+    });
+  }, [analysisData, filterArchivo, filterPartida, filterPeriodo, filterEstadoPeriodo, filterEstadoEjecucion]);
+
+  const uniquePeriodos = useMemo(() => {
+    const set = new Set(analysisData.map((d: any) => d.periodo).filter(Boolean));
+    return Array.from(set).sort();
+  }, [analysisData]);
+
+  const clearFilters = () => {
+    setFilterArchivo('');
+    setFilterPartida('');
+    setFilterPeriodo('');
+    setFilterEstadoPeriodo('');
+    setFilterEstadoEjecucion('');
+  };
+
+  const hasFilters = filterArchivo || filterPartida || filterPeriodo || filterEstadoPeriodo || filterEstadoEjecucion;
 
   if (loading) return <div style={{ textAlign: 'center', padding: 40 }}>Cargando...</div>;
 
@@ -219,6 +250,64 @@ export default function PACAnalisis() {
           Análisis de Documentos por Período
           <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 4 }}><Pencil size={12} /> Editable</span>
         </h3>
+
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16, alignItems: 'center' }}>
+          <div style={{ position: 'relative' }}>
+            <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+            <input
+              className="form-input"
+              placeholder="Archivo..."
+              value={filterArchivo}
+              onChange={e => setFilterArchivo(e.target.value)}
+              style={{ paddingLeft: 32, width: 200, fontSize: 13 }}
+            />
+          </div>
+          <input
+            className="form-input"
+            placeholder="Partida..."
+            value={filterPartida}
+            onChange={e => setFilterPartida(e.target.value)}
+            style={{ width: 140, fontSize: 13 }}
+          />
+          <select
+            className="form-input"
+            value={filterPeriodo}
+            onChange={e => setFilterPeriodo(e.target.value)}
+            style={{ width: 150, fontSize: 13 }}
+          >
+            <option value="">Todos los períodos</option>
+            {uniquePeriodos.map(p => <option key={p} value={p}>{p}</option>)}
+          </select>
+          <select
+            className="form-input"
+            value={filterEstadoPeriodo}
+            onChange={e => setFilterEstadoPeriodo(e.target.value)}
+            style={{ width: 160, fontSize: 13 }}
+          >
+            <option value="">Todos los estados</option>
+            <option value="current">Período Actual</option>
+            <option value="past">Período Vencido</option>
+            <option value="future">Período Futuro</option>
+          </select>
+          <select
+            className="form-input"
+            value={filterEstadoEjecucion}
+            onChange={e => setFilterEstadoEjecucion(e.target.value)}
+            style={{ width: 160, fontSize: 13 }}
+          >
+            <option value="">Toda ejecución</option>
+            {ESTADOS_EJECUCION.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+          </select>
+          {hasFilters && (
+            <button className="btn btn-ghost btn-sm" onClick={clearFilters} style={{ fontSize: 12 }}>
+              Limpiar filtros
+            </button>
+          )}
+          <span style={{ fontSize: 12, color: 'var(--text-secondary)', marginLeft: 'auto' }}>
+            {filteredData.length} de {analysisData.length} documento(s)
+          </span>
+        </div>
+
         <div className="table-responsive">
           <table>
             <thead>
@@ -227,10 +316,12 @@ export default function PACAnalisis() {
               </tr>
             </thead>
             <tbody>
-              {analysisData.length === 0 ? (
-                <tr><td colSpan={8} style={{ textAlign: 'center', padding: 24, color: 'var(--text-secondary)' }}>No hay documentos para analizar.</td></tr>
+              {filteredData.length === 0 ? (
+                <tr><td colSpan={8} style={{ textAlign: 'center', padding: 24, color: 'var(--text-secondary)' }}>
+                  {hasFilters ? 'No se encontraron documentos con los filtros aplicados.' : 'No hay documentos para analizar.'}
+                </td></tr>
               ) : (
-                analysisData.map((doc: any) => (
+                filteredData.map((doc: any) => (
                   <tr key={doc.id} style={getRowStyle(doc.status)}>
                     <td style={{ fontSize: 13 }}>{truncate(doc.filename, 40)}</td>
                     <td style={{ fontSize: 13, fontFamily: 'monospace' }}>{doc.partida_presupuestaria || <span style={{ color: '#9ca3af' }}>-</span>}</td>
