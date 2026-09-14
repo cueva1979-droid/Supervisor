@@ -62,7 +62,7 @@ const navItems: (NavItem & { children?: NavItem[] })[] = [
       { id: 'administradores', label: 'Administradores', icon: Users, parent: 'infima' },
       { id: 'productos', label: 'Productos', icon: Package, parent: 'infima' },
       { id: 'reports', label: 'Reportes', icon: BarChart3, parent: 'infima' },
-      { id: 'history', label: 'Historial', icon: History, parent: 'infima' },
+      { id: 'history', label: 'Orden de Compra', icon: History, parent: 'infima' },
     ]
   },
   { id: 'pac-dashboard', label: 'Plan Anual de Contratación', icon: FileText,
@@ -108,7 +108,7 @@ const pageTitles: Record<string, string> = {
   'providers': 'Proveedores',
   'administradores': 'Administradores',
   'reports': 'Reportes',
-  'history': 'Historial',
+  'history': 'Orden de Compra',
   'productos': 'Productos',
   'config': 'Configuración',
   'users': 'Usuarios',

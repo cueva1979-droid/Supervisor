@@ -174,7 +174,7 @@ export default function HistoryPage() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div className="card">
         <div className="card-header" style={{ justifyContent: 'space-between' }}>
-          <span><History size={18} /> Historial de Registros</span>
+          <span><History size={18} /> Orden de Compra</span>
           <a href={getExportExcelUrl()} className="btn btn-success btn-sm" download>
             <FileDown size={14} /> Exportar Excel
           </a>
