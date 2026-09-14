@@ -1720,7 +1720,7 @@ async def procesos_extract(file: UploadFile = File(...), user: User = Depends(re
     try:
         result = process_proceso_pdf(filepath, filename, db)
         db.commit()
-        log_audit(user.id, "UPLOAD", "procesos_contratacion", details=f"Archivo: {filename}", db=db)
+        log_audit(user.id, "UPLOAD", "procesos_contratacion", details=f"Archivo: {filename} - {result.get('total', 0)} procesos", db=db)
         return result
     except ValueError as e:
         logger.warning(f"Error de validación al procesar proceso: {e}")
