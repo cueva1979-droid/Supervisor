@@ -80,7 +80,7 @@ def _parse_process_block(codigo: str, objeto_line: str, objeto_extra: str, block
     # Extract estado del proceso
     # Handle encoding issues: Ejecuci?n, Desierta, Adjudicada, etc.
     estado = ""
-    estado_match = re.search(r'\b(Desierta|Adjudicada|Ejecuci\S*\s*(?:de\s+Contrato)?|Finalizada|Publicada|Suspendida|Recepci\S*\s*(?:de\s+)?|En\s+curso|Cancelada)\b', block, re.IGNORECASE)
+    estado_match = re.search(r'\b(Desiert[ao]|Adjudicad[ao]|Ejecuci\S*(?:\s*de\s+Contrato)?|Finalizad[ao]|Publicad[ao]|Suspendid[ao]|Recepci\S*(?:\s*de\s*)?|En\s+curso|Cancelad[ao]|Borrador)\b', block, re.IGNORECASE)
     if estado_match:
         raw = estado_match.group(1).strip()
         # Normalize before _fix_encoding removes replacement chars
@@ -172,7 +172,7 @@ def _extract_single_process(text: str) -> Dict:
     if m:
         result["objeto_proceso"] = _fix_encoding(m.group(1)[:500])
     
-    for est in ['Desierta', 'Adjudicada', 'Ejecución de Contrato', 'Finalizada', 'Publicada', 'Suspendida']:
+    for est in ['Desierta', 'Desierto', 'Adjudicada', 'Adjudicado', 'Ejecución de Contrato', 'Finalizada', 'Finalizado', 'Publicada', 'Publicado', 'Suspendida', 'Suspendido', 'Cancelada', 'Cancelado', 'Borrador']:
         if est.lower() in text.lower():
             result["estado_proceso"] = _fix_encoding(est)
             break
@@ -193,59 +193,54 @@ def _extract_single_process(text: str) -> Dict:
 
 def process_proceso_pdf(filepath: str, filename: str, db: Session) -> dict:
     all_procs = extract_proceso_data(filepath)
-    
+
     if not all_procs or not any(p.get("codigo") for p in all_procs):
         raise ValueError("No se pudo extraer ningún código de proceso del documento")
-    
+
+    codigos_validos = [p["codigo"] for p in all_procs if p.get("codigo")]
+
+    duplicados = (
+        db.query(ProcesoContratacion.codigo)
+        .filter(ProcesoContratacion.codigo.in_(codigos_validos))
+        .all()
+    )
+    if duplicados:
+        codigos_dup = [d.codigo for d in duplicados]
+        raise ValueError(
+            f"Los siguientes códigos ya existen en el sistema: {', '.join(codigos_dup)}. "
+            "Elimine los procesos existentes antes de volver a cargar el archivo."
+        )
+
     now = datetime.utcnow().isoformat()
     created_count = 0
-    updated_count = 0
     results = []
-    
+
     for data in all_procs:
         if not data.get("codigo"):
             continue
-        
-        existing = db.query(ProcesoContratacion).filter(ProcesoContratacion.codigo == data["codigo"]).first()
-        
-        if existing:
-            existing.filename = filename
-            if data.get("objeto_proceso"):
-                existing.objeto_proceso = data["objeto_proceso"]
-            if data.get("estado_proceso"):
-                existing.estado_proceso = data["estado_proceso"]
-            if data.get("presupuesto_referencial") is not None:
-                existing.presupuesto_referencial = data["presupuesto_referencial"]
-            if data.get("fecha_publicacion"):
-                existing.fecha_publicacion = data["fecha_publicacion"]
-            existing.fecha_procesamiento = now
-            db.flush()
-            db.refresh(existing)
-            results.append(_proceso_to_dict(existing, updated=True))
-            updated_count += 1
-        else:
-            proc = ProcesoContratacion(
-                id=str(uuid.uuid4()),
-                filename=filename,
-                codigo=data["codigo"],
-                objeto_proceso=data.get("objeto_proceso"),
-                estado_proceso=data.get("estado_proceso"),
-                presupuesto_referencial=data.get("presupuesto_referencial"),
-                fecha_publicacion=data.get("fecha_publicacion"),
-                fecha_procesamiento=now,
-            )
-            db.add(proc)
-            db.flush()
-            db.refresh(proc)
-            results.append(_proceso_to_dict(proc, created=True))
-            created_count += 1
-    
+
+        proc = ProcesoContratacion(
+            id=str(uuid.uuid4()),
+            filename=filename,
+            codigo=data["codigo"],
+            objeto_proceso=data.get("objeto_proceso"),
+            estado_proceso=data.get("estado_proceso"),
+            presupuesto_referencial=data.get("presupuesto_referencial"),
+            fecha_publicacion=data.get("fecha_publicacion"),
+            fecha_procesamiento=now,
+        )
+        db.add(proc)
+        db.flush()
+        db.refresh(proc)
+        results.append(_proceso_to_dict(proc, created=True))
+        created_count += 1
+
     return {
         "procesos_creados": created_count,
-        "procesos_actualizados": updated_count,
-        "total": created_count + updated_count,
+        "procesos_actualizados": 0,
+        "total": created_count,
         "procesos": results,
-        "mensaje": f"{created_count} proceso(s) creado(s), {updated_count} actualizado(s)",
+        "mensaje": f"{created_count} proceso(s) creado(s)",
     }
 
 
