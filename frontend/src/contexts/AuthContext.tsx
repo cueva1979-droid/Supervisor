@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import { login as apiLogin, getMe, logout as apiLogout, getUser, setUser, clearUser, type UserInfo } from '../services/auth';
+import { login as apiLogin, getMe, logout as apiLogout, refreshToken, getUser, setUser, clearUser, type UserInfo } from '../services/auth';
 
 interface AuthContextType {
   user: UserInfo | null;
@@ -33,8 +33,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUserState(me);
         setUser(me);
       } catch {
-        clearUser();
-        setUserState(null);
+        try {
+          await refreshToken();
+          const me = await getMe();
+          setUserState(me);
+          setUser(me);
+        } catch {
+          clearUser();
+          setUserState(null);
+        }
       }
       setLoading(false);
     };

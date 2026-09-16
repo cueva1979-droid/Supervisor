@@ -49,6 +49,10 @@ export async function refreshToken(): Promise<void> {
     headers: { 'Content-Type': 'application/json' },
   });
   if (!res.ok) throw new Error('No se pudo renovar la sesión');
+  const data = await res.json();
+  if (data.csrf_token) {
+    localStorage.setItem('csrf_token', data.csrf_token);
+  }
 }
 
 export async function logout(): Promise<void> {

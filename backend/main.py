@@ -320,7 +320,7 @@ def logout(response: FastResponse):
     return {"message": "Sesión cerrada"}
 
 @app.post("/auth/refresh")
-def refresh_token(data: Optional[RefreshRequest] = None, request: Request = None, db: Session = Depends(get_db)):
+def refresh_token(data: Optional[RefreshRequest] = None, request: Request = None, response: FastResponse = None, db: Session = Depends(get_db)):
     refresh = data.refresh_token if data else None
     if not refresh and request:
         refresh = request.cookies.get(settings.COOKIE_REFRESH_NAME)
@@ -333,7 +333,10 @@ def refresh_token(data: Optional[RefreshRequest] = None, request: Request = None
     if not user or not user.is_active:
         raise HTTPException(status_code=401, detail="Usuario no válido")
     access_token = create_access_token(user.id, user.role)
-    return {"access_token": access_token, "token_type": "bearer"}
+    csrf_token = secrets.token_hex(32)
+    if response:
+        set_csrf_cookie(response, csrf_token)
+    return {"access_token": access_token, "csrf_token": csrf_token, "token_type": "bearer"}
 
 @app.get("/auth/me", response_model=UserResponse)
 def get_me(user: User = Depends(require_auth)):
