@@ -2,6 +2,7 @@ import os
 import sys
 import shutil
 import json
+import re
 import threading
 import time
 from datetime import datetime
@@ -164,17 +165,20 @@ def restore_backup(filename: str):
 def get_backup_info():
     backup_dir = get_backup_dir()
     files = []
+    # Solo listar backups válidos (backup_YYYYMMDD_HHMMSS.db/json); excluye _last_backup.json, _auto_backup_enabled.json y pre_restore_*
+    _backup_pattern = re.compile(r"^backup_\d{8}_\d{6}\.(db|json)$")
     for f in sorted(os.listdir(backup_dir), reverse=True):
-        if f.endswith(".db") or f.endswith(".json"):
-            fp = os.path.join(backup_dir, f)
-            try:
-                files.append({
-                    "filename": f,
-                    "timestamp": datetime.fromtimestamp(os.path.getmtime(fp)).isoformat(),
-                    "size_bytes": os.path.getsize(fp),
-                })
-            except Exception:
-                continue
+        if not _backup_pattern.match(f):
+            continue
+        fp = os.path.join(backup_dir, f)
+        try:
+            files.append({
+                "filename": f,
+                "timestamp": datetime.fromtimestamp(os.path.getmtime(fp)).isoformat(),
+                "size_bytes": os.path.getsize(fp),
+            })
+        except Exception:
+            continue
     if not _is_sqlite_db():
         last = _load_last_backup_info()
         return {

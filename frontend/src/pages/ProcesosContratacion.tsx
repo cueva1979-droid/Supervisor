@@ -3,6 +3,7 @@ import { Upload, FileText, Trash2, Search, AlertCircle, CheckCircle, Loader } fr
 import { API_BASE } from '../services/config';
 import { getCsrfToken } from '../services/auth';
 import CanEdit from '../components/CanEdit';
+import ExportExcelButton from '../components/ExportExcelButton';
 
 function csrfHeaders(method?: string): Record<string, string> {
   const m = (method || 'GET').toUpperCase();
@@ -202,15 +203,20 @@ export default function ProcesosContratacion() {
           <h3 style={{ fontSize: 16, fontWeight: 600, margin: 0 }}>
             Procesos Extraídos ({filteredProcesos.length})
           </h3>
-          <div style={{ position: 'relative' }}>
-            <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-            <input
-              className="form-input"
-              placeholder="Buscar..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              style={{ paddingLeft: 32, width: 250, fontSize: 13 }}
-            />
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            {procesos.length > 0 && (
+              <ExportExcelButton href={`${API_BASE}/procesos-contratacion/export-excel`} label="Exportar Excel" />
+            )}
+            <div style={{ position: 'relative' }}>
+              <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+              <input
+                className="form-input"
+                placeholder="Buscar..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                style={{ paddingLeft: 32, width: 250, fontSize: 13 }}
+              />
+            </div>
           </div>
         </div>
 

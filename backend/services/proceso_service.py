@@ -288,3 +288,101 @@ def delete_all_procesos(db: Session) -> int:
     db.query(ProcesoContratacion).delete()
     db.commit()
     return count
+
+
+def export_procesos_excel(db: Session) -> str:
+    import os
+    import re
+    import tempfile
+    import datetime
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+    from services.security import sanitize_excel
+
+    procesos = db.query(ProcesoContratacion).order_by(
+        ProcesoContratacion.fecha_procesamiento.desc()
+    ).all()
+
+    if not procesos:
+        raise ValueError("No hay procesos de contratación para exportar")
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Procesos"
+
+    # Título
+    ws.merge_cells("A1:G1")
+    title_cell = ws.cell(row=1, column=1, value="Reporte de Procesos de Contratación")
+    title_cell.font = Font(name="Calibri", bold=True, size=14, color="1F4E79")
+    title_cell.alignment = Alignment(horizontal="center", vertical="center")
+    ws.row_dimensions[1].height = 30
+
+    # Subtítulo
+    now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+    ws.merge_cells("A2:G2")
+    sub_cell = ws.cell(row=2, column=1, value=f"Generado: {now_str}")
+    sub_cell.font = Font(name="Calibri", size=10, italic=True, color="666666")
+    sub_cell.alignment = Alignment(horizontal="center")
+
+    # Headers
+    headers = ["Código", "Objeto del Proceso", "Estado", "Presupuesto Referencial",
+               "Fecha Publicación", "Archivo", "Fecha de Carga"]
+    hfill = PatternFill(start_color="1F4E79", end_color="1F4E79", fill_type="solid")
+    hfont = Font(name="Calibri", bold=True, color="FFFFFF", size=11)
+    halign = Alignment(horizontal="center", vertical="center")
+    thin = Border(
+        left=Side(style="thin"), right=Side(style="thin"),
+        top=Side(style="thin"), bottom=Side(style="thin"),
+    )
+
+    for col, h in enumerate(headers, 1):
+        c = ws.cell(row=3, column=col, value=h)
+        c.fill = hfill
+        c.font = hfont
+        c.alignment = halign
+        c.border = thin
+
+    # Datos
+    for i, proc in enumerate(procesos, 4):
+        ws.cell(row=i, column=1, value=sanitize_excel(proc.codigo or ""))
+        ws.cell(row=i, column=2, value=sanitize_excel(proc.objeto_proceso or ""))
+        ws.cell(row=i, column=3, value=sanitize_excel(proc.estado_proceso or ""))
+        ws.cell(row=i, column=4, value=proc.presupuesto_referencial)
+        ws.cell(row=i, column=5, value=sanitize_excel(proc.fecha_publicacion or ""))
+        ws.cell(row=i, column=6, value=sanitize_excel(proc.filename or ""))
+        ws.cell(row=i, column=7, value=sanitize_excel(proc.fecha_procesamiento or ""))
+
+        for col in range(1, 8):
+            cell = ws.cell(row=i, column=col)
+            cell.font = Font(name="Calibri", size=10)
+            cell.border = thin
+            if col == 2:
+                cell.alignment = Alignment(wrap_text=True, vertical="center")
+            elif col == 4:
+                cell.number_format = '#,##0.00'
+            else:
+                cell.alignment = Alignment(vertical="center")
+
+    # Auto-filter
+    last_row = len(procesos) + 3
+    ws.auto_filter.ref = f"A3:G{last_row}"
+
+    # Anchos de columna
+    ws.column_dimensions["A"].width = 24
+    ws.column_dimensions["B"].width = 60
+    ws.column_dimensions["C"].width = 20
+    ws.column_dimensions["D"].width = 22
+    ws.column_dimensions["E"].width = 16
+    ws.column_dimensions["F"].width = 32
+    ws.column_dimensions["G"].width = 22
+
+    # Pie de página
+    footer_row = last_row + 2
+    ws.cell(row=footer_row, column=1,
+            value=f"Reporte generado el: {now_str}").font = Font(
+        name="Calibri", italic=True, size=9, color="666666")
+
+    # Guardar
+    fp = os.path.join(tempfile.gettempdir(), "Procesos_Contratacion.xlsx")
+    wb.save(fp)
+    return fp
