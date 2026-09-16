@@ -64,7 +64,7 @@ export default function AdministradoresPage() {
                   <td><strong>{a.administrador}</strong></td>
                   <td><span className="badge badge-primary">{a.numero_orden || '-'}</span></td>
                   <td>{a.proveedor || '-'}</td>
-                  <td style={{ maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.objeto_contratacion || '-'}</td>
+                  <td title={a.objeto_contratacion} style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{a.objeto_contratacion || '-'}</td>
                   <td>{a.fecha || '-'}</td>
                   <td>{(a.monto_total ?? 0).toLocaleString('es-PY', { minimumFractionDigits: 2 })}</td>
                 </tr>
