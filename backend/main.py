@@ -45,7 +45,7 @@ from services.extraction_service import upload_and_process, delete_record, delet
 from services.security import sanitize_filename, sanitize_excel
 from services.provider_service import (
     get_providers, get_provider, create_provider,
-    update_provider, delete_provider, count_provider_records
+    update_provider, delete_provider, count_provider_records, get_provider_ordenes
 )
 from services.excel_service import generate_excel
 from services.report_service import get_provider_report, generate_provider_excel
@@ -524,10 +524,12 @@ def remove_record(record_id: int, user: User = Depends(require_role("admin", "op
 def list_providers(search: Optional[str] = Query(None), user: User = Depends(require_auth), db: Session = Depends(get_db)):
     providers = get_providers(db, search)
     counts = count_provider_records(db)
+    ordenes_map = get_provider_ordenes(db)
     result = []
     for p in providers:
         pd = ProviderResponse.model_validate(p).model_dump()
         pd["contratos"] = counts.get(p.id, 0)
+        pd["ordenes"] = ordenes_map.get(p.id, "")
         result.append(pd)
     return result
 

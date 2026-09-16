@@ -36,6 +36,7 @@ export interface ProviderData {
   nombre: string;
   ruc: string;
   contratos?: number;
+  ordenes?: string;
   codigo_proceso?: string;
   telefono?: string;
   observaciones?: string;

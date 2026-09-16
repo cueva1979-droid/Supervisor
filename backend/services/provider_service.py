@@ -53,3 +53,25 @@ def count_provider_records(db: Session) -> dict:
     from sqlalchemy import func
     rows = db.query(Record.provider_id, func.count(Record.id)).group_by(Record.provider_id).all()
     return {row[0]: row[1] for row in rows}
+
+def get_provider_ordenes(db: Session) -> dict:
+    from database import DB_IS_SQLITE
+    from sqlalchemy import func, distinct
+    if DB_IS_SQLITE:
+        rows = db.query(
+            Record.provider_id,
+            func.group_concat(distinct(Record.numero_orden))
+        ).filter(
+            Record.numero_orden.isnot(None),
+            Record.numero_orden != ''
+        ).group_by(Record.provider_id).all()
+    else:
+        from sqlalchemy import literal_column
+        rows = db.query(
+            Record.provider_id,
+            func.string_agg(distinct(Record.numero_orden), literal_column("','"))
+        ).filter(
+            Record.numero_orden.isnot(None),
+            Record.numero_orden != ''
+        ).group_by(Record.provider_id).all()
+    return {row[0]: row[1] or "" for row in rows}

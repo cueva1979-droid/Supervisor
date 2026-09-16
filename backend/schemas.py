@@ -72,6 +72,7 @@ class ProviderResponse(ProviderBase):
     id: int
     fecha_creacion: Optional[datetime] = None
     contratos: int = 0
+    ordenes: str = ""
     records: List[RecordResponse] = []
     class Config:
         from_attributes = True

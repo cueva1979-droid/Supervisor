@@ -112,7 +112,7 @@ export default function ProvidersPage() {
                     <td><strong>{p.nombre}</strong></td>
                     <td>{p.ruc}</td>
                     <td><span className="badge badge-primary">{(p as any).contratos ?? 0}</span></td>
-                    <td>{p.codigo_proceso || '-'}</td>
+                    <td>{p.ordenes || '-'}</td>
                     <td>{p.telefono || '-'}</td>
                     <td>{p.fecha_creacion ? new Date(p.fecha_creacion).toLocaleDateString() : '-'}</td>
                   <td>
