@@ -188,7 +188,7 @@ export default function ProcesosAdministradoresPage() {
           admins.length === 0 ? (
             <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>
               <Users size={32} style={{ opacity: 0.4, marginBottom: 12 }} />
-              <p>No hay administradores registrados. Cargue documentos CAM primero.</p>
+              <p>No hay administradores registrados. Cargue documentos de Administrador de Contrato primero.</p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>

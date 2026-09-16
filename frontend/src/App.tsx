@@ -96,7 +96,7 @@ const navItems: (NavItem & { children?: NavItem[] })[] = [
           { id: 'procesos-listado', label: 'Listado', icon: List, parent: 'procesos' },
           { id: 'procesos-contratacion', label: 'Procesos', icon: FileText, parent: 'procesos' },
           { id: 'procesos-administradores', label: 'Administradores', icon: Users, parent: 'procesos' },
-          { id: 'procesos-cam-extract', label: 'CAM - Extraer Datos', icon: Upload, parent: 'procesos' },
+          { id: 'procesos-cam-extract', label: 'Administrador de Contrato Procesos', icon: Upload, parent: 'procesos' },
         ]
       },
   { id: 'users', label: 'Usuarios', icon: ShieldCheck },
@@ -134,7 +134,7 @@ const pageTitles: Record<string, string> = {
   'procesos-listado': 'Procesos - Listado',
   'procesos-contratacion': 'Procesos de Contratación',
   'procesos-administradores': 'Procesos - Administradores',
-  'procesos-cam-extract': 'CAM - Extraer Datos',
+  'procesos-cam-extract': 'Administrador de Contrato Procesos',
 };
 
 function AppContent() {

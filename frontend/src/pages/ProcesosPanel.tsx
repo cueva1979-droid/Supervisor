@@ -36,8 +36,8 @@ export default function ProcesosPanel({ onNavigate }: Props) {
             <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
               <Upload size={28} color="#d97706" />
             </div>
-            <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>CAM - Extraer Datos</h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: 13 }}>Extraiga datos de documentos PDF de Cambio de Administrador de Contrato.</p>
+            <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Administrador de Contrato Procesos</h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: 13 }}>Extraiga datos de documentos PDF de Administrador de Contrato.</p>
           </div>
         </div>
       </div>

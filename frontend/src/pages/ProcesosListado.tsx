@@ -118,7 +118,7 @@ export default function ProcesosListado() {
   return (
     <div>
       <div style={{ marginBottom: 24 }}>
-        <h2 style={{ margin: 0, fontSize: 22 }}>CAM - Cambio de Administrador de Contrato</h2>
+        <h2 style={{ margin: 0, fontSize: 22 }}>Administrador de Contrato Procesos</h2>
         <p style={{ margin: '4px 0 0', color: 'var(--text-muted)', fontSize: 14 }}>
           Extraiga datos de documentos PDF del sistema de contratación pública
         </p>
@@ -137,7 +137,7 @@ export default function ProcesosListado() {
 
       <div className="card" style={{ padding: 24, marginBottom: 24 }}>
         <h3 style={{ margin: '0 0 16px', fontSize: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Upload size={18} /> Cargar documento CAM
+          <Upload size={18} /> Cargar documento Administrador de Contrato
         </h3>
         <CanEdit>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
