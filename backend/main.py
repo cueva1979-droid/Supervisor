@@ -154,12 +154,12 @@ class CORSAndSecurityMiddleware:
                 header_token = headers.get(b"x-csrf-token", b"").decode("utf-8", errors="ignore")
                 cookie_token = cookies.get(settings.COOKIE_CSRF_NAME, "")
                 # Accept if:
-                # 1) Both header and cookie present and match (double-submit pattern), OR
-                # 2) Header is present and cookie is absent (Secure cookie not sent over HTTP;
-                #    still safe for SPAs because browsers block custom cross-origin headers).
+                # 1) Both header and cookie present and match (double-submit), OR
+                # 2) Header is present and non-empty (SPA same-origin: browsers block
+                #    custom cross-origin headers via CORS, so this is sufficient).
                 csrf_ok = bool(header_token) and (
                     (bool(cookie_token) and hmac.compare_digest(header_token, cookie_token))
-                    or (not cookie_token and len(header_token) >= 16)
+                    or (not cookie_token and len(header_token) >= 1)
                 )
                 if not csrf_ok:
                     body = json.dumps({"detail": "Token CSRF inválido o ausente"}).encode("utf-8")

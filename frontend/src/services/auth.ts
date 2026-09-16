@@ -21,7 +21,16 @@ export function getCsrfToken(): string {
   const stored = localStorage.getItem('csrf_token');
   if (stored) return stored;
   const match = document.cookie.split('; ').find((row) => row.startsWith(`${CSRF_COOKIE_NAME}=`));
-  return match ? decodeURIComponent(match.split('=').slice(1).join('=')) : '';
+  if (match) {
+    const val = decodeURIComponent(match.split('=').slice(1).join('='));
+    if (val) {
+      localStorage.setItem('csrf_token', val);
+      return val;
+    }
+  }
+  const generated = crypto.randomUUID().replace(/-/g, '');
+  localStorage.setItem('csrf_token', generated);
+  return generated;
 }
 
 export async function login(username: string, password: string): Promise<LoginResponse> {
