@@ -89,6 +89,7 @@ def get_product_report(
         )
         .join(Record, Item.record_id == Record.id)
         .join(Provider, Record.provider_id == Provider.id)
+        .filter(Record.numero_orden.isnot(None), Record.numero_orden != "")
         .all()
     )
 

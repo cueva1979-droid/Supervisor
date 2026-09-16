@@ -1,7 +1,9 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Search, ChevronUp, ChevronDown, Filter, X, Users, FileText, Award } from 'lucide-react';
+import { Search, ChevronUp, ChevronDown, Filter, X, Users, FileText, Award, Edit3, Trash2, Save, AlertCircle } from 'lucide-react';
 import { getProviderReport, getProviderExcelUrl } from '../services/ReportService';
+import { updateProvider, deleteProvider } from '../services/api';
 import ExportExcelButton from '../components/ExportExcelButton';
+import CanEdit from '../components/CanEdit';
 import type { ProviderReportItem, ProviderReportStats } from '../types';
 
 export default function ProviderReport() {
@@ -18,6 +20,10 @@ export default function ProviderReport() {
   const [sortKey, setSortKey] = useState<string>('nombre');
   const [sortAsc, setSortAsc] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editId, setEditId] = useState<number | null>(null);
+  const [form, setForm] = useState({ nombre: '', ruc: '', codigo_proceso: '', telefono: '', observaciones: '' });
+  const [error, setError] = useState('');
   const perPage = 20;
 
   const load = useCallback(async (p: number) => {
@@ -44,6 +50,46 @@ export default function ProviderReport() {
   }, [search, ordenFiltro, fechaDesde, fechaHasta]);
 
   useEffect(() => { load(1); }, [load]);
+
+  const openEdit = (item: ProviderReportItem) => {
+    setEditId(item.id);
+    setForm({
+      nombre: item.nombre,
+      ruc: item.ruc,
+      codigo_proceso: '',
+      telefono: '',
+      observaciones: ''
+    });
+    setError('');
+    setModalOpen(true);
+  };
+
+  const handleSave = async () => {
+    if (!form.nombre || !form.ruc) {
+      setError('Nombre y RUC son obligatorios');
+      return;
+    }
+    setError('');
+    try {
+      if (editId) {
+        await updateProvider(editId, form);
+        setModalOpen(false);
+        load(page);
+      }
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
+  const handleDelete = async (id: number, nombre: string) => {
+    if (!confirm(`¿Eliminar el proveedor "${nombre}"? Se eliminarán todos sus registros asociados.`)) return;
+    try {
+      await deleteProvider(id);
+      load(page);
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
 
   const handleSort = (key: string) => {
     if (sortKey === key) setSortAsc(!sortAsc);
@@ -145,11 +191,12 @@ export default function ProviderReport() {
                     <th onClick={() => handleSort('ordenes')} style={{ cursor: 'pointer' }}>N° Orden <SortIcon k="ordenes" /></th>
                     <th onClick={() => handleSort('objeto')} style={{ cursor: 'pointer' }}>Objeto <SortIcon k="objeto" /></th>
                     <th onClick={() => handleSort('total_infimas')} style={{ cursor: 'pointer' }}>N° Ínfimas Contratadas <SortIcon k="total_infimas" /></th>
+                    <th style={{ width: 100 }}>Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
                   {sorted.length === 0 && (
-                    <tr><td colSpan={5} style={{ textAlign: 'center', padding: 24 }}>No se encontraron proveedores</td></tr>
+                    <tr><td colSpan={6} style={{ textAlign: 'center', padding: 24 }}>No se encontraron proveedores</td></tr>
                   )}
                   {sorted.map((it) => (
                     <tr key={it.id}>
@@ -158,6 +205,16 @@ export default function ProviderReport() {
                       <td style={{ fontSize: 12 }}>{it.ordenes || '-'}</td>
                       <td style={{ fontSize: 12, maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={it.objeto}>{it.objeto || '-'}</td>
                       <td><span className="badge badge-primary">{it.total_infimas}</span></td>
+                      <td>
+                        <div className="table-actions">
+                          <CanEdit>
+                            <button className="btn-icon" title="Editar" onClick={() => openEdit(it)}><Edit3 size={15} /></button>
+                          </CanEdit>
+                          <CanEdit>
+                            <button className="btn-icon" title="Eliminar" onClick={() => handleDelete(it.id, it.nombre)} style={{ color: 'var(--danger)' }}><Trash2 size={15} /></button>
+                          </CanEdit>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -174,6 +231,46 @@ export default function ProviderReport() {
           </>
         )}
       </div>
+
+      {modalOpen && (
+        <div className="modal-overlay" onClick={() => setModalOpen(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Editar Proveedor</h3>
+              <button className="btn-icon" onClick={() => setModalOpen(false)}><X size={18} /></button>
+            </div>
+            <div className="modal-body">
+              {error && <div style={{ background: '#fee2e2', color: '#991b1b', padding: '8px 12px', borderRadius: 6, marginBottom: 12, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}><AlertCircle size={14} />{error}</div>}
+              <div className="form-group">
+                <label>Nombre *</label>
+                <input className="form-input" value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} placeholder="Razón social" />
+              </div>
+              <div className="form-group">
+                <label>RUC *</label>
+                <input className="form-input" value={form.ruc} onChange={(e) => setForm({ ...form, ruc: e.target.value })} placeholder="12345678-9" />
+              </div>
+              <div className="form-group">
+                <label>Código Proceso</label>
+                <input className="form-input" value={form.codigo_proceso} onChange={(e) => setForm({ ...form, codigo_proceso: e.target.value })} />
+              </div>
+              <div className="form-group">
+                <label>Teléfono</label>
+                <input className="form-input" value={form.telefono} onChange={(e) => setForm({ ...form, telefono: e.target.value })} placeholder="+595 981 123456" />
+              </div>
+              <div className="form-group">
+                <label>Observaciones</label>
+                <textarea className="form-textarea" value={form.observaciones} onChange={(e) => setForm({ ...form, observaciones: e.target.value })} />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-ghost" onClick={() => setModalOpen(false)}>Cancelar</button>
+              <CanEdit>
+                <button className="btn btn-primary" onClick={handleSave}><Save size={14} /> Guardar</button>
+              </CanEdit>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
