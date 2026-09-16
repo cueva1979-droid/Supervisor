@@ -71,6 +71,10 @@ def process_document(filepath: str, filename: str, db: Session) -> Record:
     elif telefono and not provider.telefono:
         provider.telefono = telefono
 
+    new_codigo = data.get("codigo_proceso")
+    if new_codigo and not provider.codigo_proceso:
+        provider.codigo_proceso = new_codigo
+
     record = Record(
         filename=filename,
         file_type="pdf" if filename.lower().endswith(".pdf") else "docx",
