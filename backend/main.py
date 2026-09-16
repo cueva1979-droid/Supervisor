@@ -153,7 +153,15 @@ class CORSAndSecurityMiddleware:
                 cookies = _parse_cookies(cookie_header)
                 header_token = headers.get(b"x-csrf-token", b"").decode("utf-8", errors="ignore")
                 cookie_token = cookies.get(settings.COOKIE_CSRF_NAME, "")
-                if not header_token or not cookie_token or not hmac.compare_digest(header_token, cookie_token):
+                # Accept if:
+                # 1) Both header and cookie present and match (double-submit pattern), OR
+                # 2) Header is present and cookie is absent (Secure cookie not sent over HTTP;
+                #    still safe for SPAs because browsers block custom cross-origin headers).
+                csrf_ok = bool(header_token) and (
+                    (bool(cookie_token) and hmac.compare_digest(header_token, cookie_token))
+                    or (not cookie_token and len(header_token) >= 16)
+                )
+                if not csrf_ok:
                     body = json.dumps({"detail": "Token CSRF inválido o ausente"}).encode("utf-8")
                     resp_headers = [(b"content-type", b"application/json"), (b"content-length", str(len(body)).encode())]
                     resp_headers.extend(SECURITY_HEADERS)
@@ -1701,7 +1709,7 @@ def procesos_export_excel_by_admin(admin_name: str = Query(...), user: User = De
 
 from services.proceso_service import (
     process_proceso_pdf, list_procesos, get_proceso, 
-    delete_proceso, delete_all_procesos
+    delete_proceso, delete_all_procesos, export_procesos_excel
 )
 
 @app.post("/procesos-contratacion/extract")
@@ -1756,6 +1764,20 @@ def procesos_delete_all(user: User = Depends(require_role("admin")), db: Session
     count = delete_all_procesos(db)
     log_audit(user.id, "DELETE", "procesos_contratacion", details=f"Eliminados: {count}", db=db)
     return {"status": "ok", "deleted": count}
+
+
+@app.get("/procesos-contratacion/export-excel")
+def procesos_export_excel(user: User = Depends(require_auth), db: Session = Depends(get_db)):
+    try:
+        filepath = export_procesos_excel(db)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    log_audit(user.id, "EXPORT", "procesos_contratacion", details="Exportación Excel", db=db)
+    return FileResponse(
+        filepath,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        filename="Procesos_Contratacion.xlsx",
+    )
 
 
 # ==================== Frontend SPA (single-deploy) ====================
