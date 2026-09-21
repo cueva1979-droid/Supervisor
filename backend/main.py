@@ -1056,6 +1056,8 @@ async def pac_upload_document(file: UploadFile = File(...), user: User = Depends
     inserted_ids = []
     updated_count = 0
     inserted_count = 0
+    skipped_duplicates = 0
+    seen_upload_keys = set()
     pdf_b64 = None
     if ext == 'pdf':
         # Avoid storing huge PDFs in DB (DoS) - limit to 2MB
@@ -1070,6 +1072,13 @@ async def pac_upload_document(file: UploadFile = File(...), user: User = Depends
         cpc = doc_data.get("cpc", "")
         periodo = doc_data.get("periodo", "")
 
+        # Prevent duplicate partidas within the same upload file
+        upload_key = f"{partida}|{cpc}|{periodo}".lower()
+        if upload_key in seen_upload_keys:
+            skipped_duplicates += 1
+            continue
+        seen_upload_keys.add(upload_key)
+
         existing = db.query(PACDocument).filter(
             PACDocument.partida_presupuestaria == partida,
             PACDocument.cpc == cpc,
@@ -1078,11 +1087,12 @@ async def pac_upload_document(file: UploadFile = File(...), user: User = Depends
 
         if existing:
             existing.filename = filename
-            existing.tipo_compra = doc_data.get("tipo_compra")
-            existing.tipo_regimen = doc_data.get("tipo_regimen")
-            existing.procedimiento = doc_data.get("procedimiento")
-            existing.descripcion = doc_data.get("descripcion")
-            existing.costo_unitario = doc_data.get("costo_unitario")
+            # Only update fields that have non-empty values in the new document
+            updatable_fields = ["tipo_compra", "tipo_regimen", "procedimiento", "descripcion", "costo_unitario"]
+            for field in updatable_fields:
+                new_value = doc_data.get(field)
+                if new_value is not None and new_value != "":
+                    setattr(existing, field, new_value)
             if pdf_b64:
                 existing.pdf_data = pdf_b64
             existing.upload_date = dt.utcnow().isoformat()
@@ -1108,9 +1118,10 @@ async def pac_upload_document(file: UploadFile = File(...), user: User = Depends
     db.commit()
 
     return {
-        "message": f"Proceso completado: {inserted_count} nuevos, {updated_count} actualizados",
+        "message": f"Proceso completado: {inserted_count} nuevos, {updated_count} actualizados, {skipped_duplicates} duplicados omitidos",
         "inserted": inserted_count,
         "updated": updated_count,
+        "skipped_duplicates": skipped_duplicates,
         "extractedData": documents,
     }
 
