@@ -2,6 +2,7 @@
 """Punto de entrada para SupervisorPRO - Inicia backend y abre navegador."""
 import os
 import sys
+import getpass
 import webbrowser
 import socket
 import threading
@@ -34,7 +35,54 @@ def open_browser(port, delay=2):
         webbrowser.open(f"http://127.0.0.1:{port}")
     threading.Thread(target=_open, daemon=True).start()
 
+def reset_password():
+    """Restablece la contraseña del usuario admin desde la consola."""
+    base = get_resource_path("backend")
+    sys.path.insert(0, base)
+
+    data_dir = os.path.join(BASE_DIR, "data")
+    db_path = os.path.join(data_dir, "supervisor.db")
+    if not os.path.exists(db_path):
+        print("ERROR: No se encontro la base de datos. Ejecute la aplicacion primero.")
+        sys.exit(1)
+
+    os.chdir(BASE_DIR)
+    os.makedirs(data_dir, exist_ok=True)
+
+    from database import SessionLocal, init_db
+    from models import User
+    from auth import hash_password
+
+    init_db()
+    db = SessionLocal()
+    try:
+        admin = db.query(User).filter(User.role == "admin").first()
+        if not admin:
+            print("ERROR: No se encontro usuario admin. Cree uno desde la aplicacion.")
+            sys.exit(1)
+
+        print(f"Usuario: {admin.username}")
+        new_pass = getpass.getpass("Nueva contraseña: ")
+        if len(new_pass) < 8:
+            print("ERROR: La contraseña debe tener al menos 8 caracteres.")
+            sys.exit(1)
+        confirm = getpass.getpass("Confirmar contraseña: ")
+        if new_pass != confirm:
+            print("ERROR: Las contraseñas no coinciden.")
+            sys.exit(1)
+
+        admin.password_hash = hash_password(new_pass)
+        db.commit()
+        print(f"Contraseña del usuario '{admin.username}' actualizada exitosamente.")
+    finally:
+        db.close()
+
+
 def main():
+    if "--reset-password" in sys.argv:
+        reset_password()
+        return
+
     port_env = os.getenv("PORT")
     if port_env:
         port = int(port_env)
