@@ -402,9 +402,10 @@ def extract_pdf_tabular_data(file_bytes: bytes) -> List[dict]:
                         # last two are Costo U and V.Total – take Costo U
                         costo_u = monetary[-2] if len(monetary) >= 2 else monetary[-1]
 
-                    # descripcion: longest text >20 chars, ignore huge merged cell (>800) and generic headers
+                    # descripcion: longest text >5 chars, ignore huge merged cell (>800) and generic headers
                     desc = ""
                     maxlen = 0
+                    SKIP_DESC = {"proyecto de\ninversi\u00f3n", "gasto\ncorriente", "normalizado", "no aplica", "no", "si", "bien", "servicio", "obra", "consultoria", "gasto corriente", "proyecto de inversi\u00f3n"}
                     for c in row:
                         if c:
                             cc = str(c).strip()
@@ -412,10 +413,12 @@ def extract_pdf_tabular_data(file_bytes: bytes) -> List[dict]:
                                 continue
                             if cc == nro or cc == partida or cc == cpc or cc == (periodo or "") or cc == (costo_u or ""):
                                 continue
-                            low = cc.lower()
-                            if low in ("proyecto de\ninversi\u00f3n", "gasto\ncorriente", "normalizado", "no aplica", "no", "si", "bien", "servicio", "obra", "consultoria"):
+                            low = cc.lower().replace("\n", " ").strip()
+                            if low in SKIP_DESC or cc.lower() in SKIP_DESC:
                                 continue
-                            if len(cc) > maxlen and len(cc) > 20 and " " in cc:
+                            if re.match(r"^\d{1,3}(,\d{3})*\.\d+$", cc):
+                                continue
+                            if len(cc) > maxlen and len(cc) > 5:
                                 maxlen = len(cc)
                                 desc = cc
                     desc_clean = re.sub(r"\s+", " ", desc).strip() if desc else ""
