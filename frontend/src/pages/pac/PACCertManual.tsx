@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Download, FileCheck, Search, Database } from 'lucide-react';
+import { Download, FileCheck, Search, Database, Save } from 'lucide-react';
 import CanEdit from '../../components/CanEdit';
 import { pacAPI } from '../../services/pacApi';
 
@@ -18,6 +18,7 @@ const InputField = ({ label, name, type = 'text', options = null, value, onChang
 
 export default function PACCertManual() {
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState({
     cert_nro: '', anio: new Date().getFullYear().toString(), objeto: '',
     base_legal: 'Que conforme a lo establecido en el Art.-66.- Reglamento de la Ley Orgánica del Sistema de Contratación Pública-LOSNCP.',
@@ -76,6 +77,27 @@ export default function PACCertManual() {
       alert(errMsg);
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!formData.cert_nro || !formData.objeto) {
+      alert('Complete los campos requeridos: Nro. Certificación y Objeto');
+      return;
+    }
+    setIsSaving(true);
+    try {
+      await pacAPI.createCertificate({
+        certificate_type: 'MANUAL',
+        cert_nro: formData.cert_nro,
+        data: formData,
+      });
+      alert('Certificación guardada exitosamente');
+    } catch (e: any) {
+      const errMsg = e?.error || e?.detail || 'Error al guardar';
+      alert(errMsg);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -156,9 +178,14 @@ export default function PACCertManual() {
         </div>
       </div>
 
-      <div style={{ marginTop: 24, textAlign: 'right' }}>
+      <div style={{ marginTop: 24, textAlign: 'right', display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
         <CanEdit>
-          <button className="btn btn-primary" onClick={handleGenerate} disabled={isGenerating} style={{ padding: '12px 32px' }}>
+          <button className="btn btn-ghost" onClick={handleSave} disabled={isSaving || isGenerating} style={{ padding: '12px 24px' }}>
+            {isSaving ? 'Guardando...' : <><Save size={20} /> GUARDAR</>}
+          </button>
+        </CanEdit>
+        <CanEdit>
+          <button className="btn btn-primary" onClick={handleGenerate} disabled={isGenerating || isSaving} style={{ padding: '12px 32px' }}>
             {isGenerating ? 'Generando...' : <><Download size={20} /> GENERAR CERTIFICACIÓN</>}
           </button>
         </CanEdit>
